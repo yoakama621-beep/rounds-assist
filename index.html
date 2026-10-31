@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>回診アシスト</title>
+<meta name="theme-color" content="#0f6e66">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="回診アシスト">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--ink:#1d2a2a;--sub:#5d6b6b;--line:#dde3e1;--accent:#0f6e66;--accent-soft:#e3f1ef;--warn:#b4560e;--warn-soft:#fdf0e4;--bad:#b3261e;--bad-soft:#fdf1f0;--blue:#2457a6;--blue-soft:#e6eef9;--purple:#6a3fa0;--purple-soft:#f1eaf8;--ok:#3f8f4a;--ok-soft:#e6f3e8;--temp:#7a5a00;--temp-soft:#fff6d9;
+ --s1:#2457a6;--s2:#d0731f;--s3:#009a8a;--s4:#8a4bc2}
+*{box-sizing:border-box}
+button{-webkit-appearance:none;appearance:none;font-family:inherit;line-height:1.3;margin:0;-webkit-tap-highlight-color:transparent}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-height:38px;line-height:1.2;background:#fff}
+body{margin:0;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI",Meiryo,system-ui,sans-serif;-webkit-text-size-adjust:100%;overflow-x:hidden;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55}
+.num{font-family:ui-monospace,"SF Mono",Menlo,"Roboto Mono","IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+header{background:var(--accent);color:#fff;padding:10px 14px;position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:10px}
+header h1{font-size:16px;margin:0;flex:1}
+header button{background:none;border:0;color:#fff;cursor:pointer;padding:4px;display:flex;align-items:center}
+main{max-width:720px;margin:0 auto;padding:12px 12px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+h2{font-size:15px;margin:0 0 8px}
+h3{font-size:13px;margin:12px 0 4px;color:var(--sub);font-weight:700;display:flex;align-items:center;gap:6px}
+.badge{font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px}
+.b-a{background:var(--accent);color:#fff}.b-b{background:var(--blue);color:#fff}.b-c{background:var(--line);color:var(--ink)}
+.muted{color:var(--sub);font-size:13px}
+input,select,textarea{font:inherit;font-size:15px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;color:var(--ink);min-width:0}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.btn{font:inherit;font-size:14px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;padding:7px 14px;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--accent)}.btn.danger{background:#fff;color:var(--bad);border-color:var(--bad)}
+.btn.sm{padding:3px 10px;font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prog{height:8px;background:var(--line);border-radius:99px;overflow:hidden;flex:1}
+.prog>i{display:block;height:100%;background:var(--accent);transition:width .2s}
+label.f{display:flex;flex-direction:column;font-size:12px;color:var(--sub);gap:3px}
+/* list */
+.pl{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.pl:last-child{border:0}
+.pl .nm{font-weight:700;font-size:16px;min-width:64px}
+.pl .info{flex:1;min-width:0}
+.chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.chip{font-size:11px;padding:1px 8px;border-radius:99px;background:var(--blue-soft);color:var(--blue)}
+.chip.ic{background:var(--purple-soft);color:var(--purple)}
+.cnt{font-size:13px;text-align:right;white-space:nowrap}
+.ngc{color:#fff;background:var(--bad);font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;font-family:"Noto Sans JP"}
+/* header card */
+.dnav{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:6px;align-items:center;width:100%}
+.dnav.t{grid-template-columns:40px minmax(0,1fr) 40px 56px}
+.dnav input{width:100%;text-align:center}
+.dhead{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.dnav button{width:100%;height:38px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:var(--ink)}
+.dnav #dtoday{font-size:13px;color:var(--accent);border-color:var(--accent)}
+.ptabs{display:grid;grid-template-columns:repeat(4,1fr);margin-top:10px;border:1px solid var(--accent);border-radius:8px;overflow:hidden}
+.ptabs button{border:0;background:#fff;color:var(--accent);font:inherit;font-size:12px;white-space:nowrap;padding:6px 2px;cursor:pointer;line-height:1.3}
+.ptabs button+button{border-left:1px solid var(--accent)}
+.ptabs button.on{background:var(--accent);color:#fff;font-weight:700}
+.ptabs small{display:block;font-size:11px;opacity:.85;font-family:"IBM Plex Mono",monospace}
+.ngsum{margin-top:8px;font-size:13px;color:var(--bad);background:var(--bad-soft);border-radius:8px;padding:6px 10px}
+.today{margin-top:8px;font-size:13px;color:var(--purple);background:var(--purple-soft);border-radius:8px;padding:6px 10px}
+.allok{text-align:center;color:var(--accent);font-weight:700;padding:6px;background:var(--accent-soft);border-radius:8px;margin-top:8px}
+/* sections */
+.side{border-top:4px solid var(--accent)}.side h2{margin:0}
+.side.exam{border-top-color:var(--purple)}.side.exam h2{color:var(--purple)}
+.side.p2c{border-top-color:var(--blue)}.side.p2c h2{color:var(--blue);font-size:14px}
+.side.dcc{border-top-color:var(--warn)}.side.dcc h2{color:var(--warn)}
+.sidehd{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.organ{font-size:12px;font-weight:700;color:var(--accent);margin:10px 0 0 4px;padding-left:8px;border-left:3px solid var(--accent)}
+.side.exam .organ{color:var(--purple);border-color:var(--purple)}
+.empty{color:var(--sub);font-size:13px;padding:6px}
+/* item rows */
+.ck{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:9px 6px;border-radius:8px;border-bottom:1px solid var(--bg)}
+.ck .body{flex:1;min-width:120px}
+.ck .t{font-size:15px}.ck .h{font-size:12px;color:var(--sub)}
+.ck.ok .t{color:var(--sub)}
+.ck.ng{background:var(--bad-soft)}
+.st{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none;min-width:170px}
+.st button{border:0;background:#fff;font:inherit;font-size:13px;padding:7px 6px;cursor:pointer;color:var(--sub);text-align:center;white-space:nowrap;min-height:36px}
+.st button+button{border-left:1px solid var(--line)}
+.st button.on.g{background:var(--accent);color:#fff;font-weight:700}
+.st button.on.r{background:var(--bad);color:#fff;font-weight:700}
+.st button.on.b{background:var(--blue);color:#fff;font-weight:700}
+.st button.on.o{background:var(--warn);color:#fff;font-weight:700}
+.st button.on.n{background:#e9ecec;color:var(--ink);font-weight:700}
+.st.sm3 button{padding:6px 8px;font-size:12px}
+.nums{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.nums .ni{width:76px}
+.nums .u{font-size:12px;color:var(--sub)}
+.nums .lb{font-size:12px;color:var(--sub)}
+.nums .grp{display:flex;align-items:center;gap:4px}
+.memo{flex-basis:100%}
+.memo input{width:100%}
+.prev{font-size:12px;color:var(--bad)}
+.ops{display:flex;gap:4px;flex:none}
+.rm{border:0;background:none;color:var(--bad);font-size:13px;cursor:pointer;padding:2px 6px;display:none}
+.editing .rm{display:block}
+.addbtn{margin-top:10px}.editing .addbtn{display:none}
+.endnote{font-size:12px;color:var(--blue)}
+.ck.p2-end{background:var(--blue-soft)}
+.ended{font-size:12px;color:var(--sub);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+/* io */
+.iobox{flex-basis:100%;background:var(--bg);border-radius:10px;padding:10px;margin-top:4px}
+.iobox .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.iobox label.f input{width:100%}
+.iores{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.iores .s{background:#fff;border-radius:8px;padding:6px 10px;flex:1;min-width:120px}
+.iores .s .k{font-size:11px;color:var(--sub)}.iores .s .v{font-size:18px}
+.formula{font-size:12px;color:var(--ink);background:#fff;border:1px dashed var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.7}
+.formula b{font-weight:700}
+table.br{width:100%;border-collapse:collapse;font-size:12px}
+table.br td{padding:2px 4px;border-bottom:1px solid var(--line)}
+table.br td:last-child{text-align:right;font-family:"IBM Plex Mono",monospace}
+table.br tr.tot td{font-weight:700}
+/* edit panel */
+.editpanel{border:2px solid var(--accent)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--accent);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:#fff;color:var(--accent);font:inherit;font-size:14px;padding:7px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff;font-weight:700}
+.cands{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.cand{border:1px dashed var(--accent);background:#fff;color:var(--accent);border-radius:99px;padding:4px 12px;font:inherit;font-size:13px;cursor:pointer}
+/* ③ */
+.form3{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;align-items:end}
+.form3 input,.form3 select{width:100%}
+.lst{list-style:none;padding:0;margin:8px 0 0}
+.lst li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.lst li .d{min-width:70px;font-family:"IBM Plex Mono",monospace;font-size:13px}
+.lst li .x{flex:1}
+.lst li.past{color:var(--sub)}
+.tag{font-size:11px;padding:0 6px;border-radius:99px;background:var(--line);color:var(--ink);margin-left:4px}
+.tag.img{background:var(--blue-soft);color:var(--blue)}
+.tag.abx{background:var(--accent-soft);color:var(--accent)}
+/* ④ calendar */
+.calhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.calhd button{width:40px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;color:var(--ink);border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal .wd{font-size:11px;text-align:center;color:var(--sub);padding:2px 0}
+.cal .wd.sun{color:var(--bad)}.cal .wd.sat{color:var(--blue)}
+.cell{min-height:70px;border:1px solid var(--line);border-radius:6px;padding:2px;cursor:pointer;background:#fff;overflow:hidden}
+.cell.out{background:#fafbfb;opacity:.45}
+.cell.today{border:2px solid var(--accent)}
+.cell.sel{background:var(--accent-soft)}
+.cell.adm{background:linear-gradient(#fff,#fff) padding-box}
+.cell .dn{font-size:11px;font-family:"IBM Plex Mono",monospace}
+.ev{font-size:9px;line-height:1.25;border-radius:3px;padding:0 2px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev.ex{background:var(--blue-soft);color:var(--blue)}
+.ev.ic{background:var(--purple);color:#fff}
+.ev.dv{background:#eceff0;color:var(--ink)}
+.ev.ab{background:var(--s3);color:#fff}
+.ev.po{background:var(--accent-soft);color:var(--accent)}
+.ev.dc{background:var(--warn);color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--sub);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.daydet{margin-top:10px;background:var(--bg);border-radius:8px;padding:8px 10px;font-size:13px}
+.daydet ul{margin:4px 0 0;padding-left:18px}
+.tx{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.tx .m{font-size:12px;color:var(--sub);grid-column:1/-1}
+.tx .prog{grid-column:1/-1}
+/* trend list */
+.tr{border-bottom:1px solid var(--line)}
+.tr>button{width:100%;display:flex;align-items:center;gap:8px;background:none;border:0;font:inherit;padding:10px 4px;cursor:pointer;text-align:left;color:var(--ink)}
+.tr>button .nm{flex:1}
+.tr>button .lv{font-size:13px;color:var(--sub)}
+.spark{display:flex;gap:1px}
+.spark i{width:6px;height:12px;border-radius:2px;background:#eceff0}
+.spark i.o{background:var(--ok)}.spark i.n{background:var(--bad)}
+.chartbox{padding:4px 0 12px}
+.chartbox svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{font-size:12px;background:var(--bg);border-radius:8px;padding:6px 10px;margin-top:4px;min-height:30px}
+.ngmemos{font-size:12px;margin-top:6px}
+.ngmemos div{padding:2px 0;color:var(--bad)}
+/* misc */
+.probs{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:13px;margin-top:2px}
+.te{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--bg);cursor:pointer;font-size:14px}
+.te:last-child{border:0}.tedot{width:10px;height:10px;border-radius:3px;padding:0;margin:0;flex:none}
+.te .tel{min-width:52px}
+.tedot.ex{background:var(--blue)}.tedot.dv{background:#8a9696}.tedot.po{background:var(--accent)}
+#memobar{position:fixed;left:0;right:0;bottom:0;padding-bottom:env(safe-area-inset-bottom);z-index:20;background:#fff;border-top:2px solid var(--warn);box-shadow:0 -4px 12px rgba(0,0,0,.08)}
+.mbtn{width:100%;display:flex;align-items:center;gap:10px;background:#fff;border:0;font:inherit;padding:10px 14px;cursor:pointer;text-align:left;color:var(--ink);max-width:720px;margin:0 auto}
+.mbtn .mt{font-weight:700;color:var(--warn);white-space:nowrap}
+.mbtn .mt .num{background:var(--warn);color:#fff;border-radius:99px;padding:0 6px;font-size:11px}
+.mbtn .ml{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--sub)}
+.mpanel{max-width:720px;margin:0 auto;padding:10px 14px 14px}
+.mitems{max-height:170px;overflow:auto;margin-top:6px}
+.mi{display:flex;align-items:flex-start;gap:4px;border-bottom:1px dashed var(--line);padding:3px 0}
+.mi textarea{flex:1;border:0;padding:4px;font-size:14px;resize:none;overflow:hidden;background:transparent}
+.mi textarea:focus{background:var(--warn-soft);outline:none}
+.md{font-size:12px;color:var(--sub);white-space:nowrap;padding-top:6px}
+.rmx{border:0;background:none;color:var(--bad);cursor:pointer;font-size:14px;padding:4px 6px}.rmx.cf{font-size:12px;font-weight:700}
+#mNew{resize:vertical}
+.memocard{border-top:4px solid var(--warn)}.memocard h2{color:var(--warn);margin:0}
+.mlist{margin:6px 0 0;padding-left:18px;font-size:14px}.mlist li{padding:2px 0;white-space:pre-wrap}.mlist .md{padding-left:4px}
+.aq{font-weight:700;font-size:14px;margin-bottom:6px}
+.sub3{margin-top:8px;font-size:12px;color:var(--sub);background:var(--bg);border-radius:8px;padding:8px}
+.up{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--bg);font-size:14px}
+.up .ud{min-width:72px;font-size:13px;color:var(--sub);padding-top:1px}
+.up .uv{display:flex;flex-direction:column;gap:2px}
+.ut{display:flex;align-items:center;gap:6px}
+.tedot.ab{background:var(--s3)}.tedot.ic{background:var(--purple)}.tedot.dc{background:var(--warn)}
+@media (max-width:480px){
+  .ck>.st{flex:1 1 100%;min-width:0}
+  .ck>.ops{flex:1 1 100%;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+  .ck .body{flex:1 1 100%}
+  .st button{font-size:14px;min-height:40px}
+  input,select,textarea{font-size:16px}
+  main{padding:10px 8px 80px}
+  .card{padding:12px 12px}
+  .ptabs{grid-template-columns:1fr 1fr}
+  .ptabs button{font-size:13px;padding:7px 2px}
+  .ptabs button:nth-child(3){border-left:0}
+  .ptabs button:nth-child(n+3){border-top:1px solid var(--accent)}
+  .cell{min-height:52px;padding:2px 1px}
+  .ev{font-size:0;height:5px;padding:0;margin-top:2px;border-radius:3px}
+  .ev.ex{background:var(--blue)}.ev.dv{background:#8a9696}.ev.po{background:var(--accent)}
+  .iobox .grid{grid-template-columns:1fr 1fr}
+  .iobox>div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  .nums .ni{width:72px}
+
+  .tr>button .nm{min-width:0;overflow-wrap:anywhere}
+  .spark i{width:5px}
+}
+.temp{background:var(--temp-soft);border-color:#ecd99a}.temp h2{color:var(--temp)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-start;justify-content:center;z-index:30;padding:16px;overflow:auto}
+.modal.on{display:flex}.modal .card{max-width:440px;width:100%;margin-top:30px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:99px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40;max-width:90vw}
+.toast.on{opacity:1}
+.admq{padding:10px 0;border-bottom:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header><button id="back" style="display:none" aria-label="戻る"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1 id="ttl">回診アシスト</h1></header>
+<main id="main"></main>
+<div class="modal" id="modal"><div class="card" id="mb"></div></div>
+<div class="toast" id="toast"></div>
+<div id="memobar" style="display:none"></div>
+<script>
+/* ================= 定数 ================= */
+const KEY="ca.rounds.v3";
+const VITALS=[
+ {k:"v_bt",t:"体温",u:"℃",f:["bt"],step:"0.1"},
+ {k:"v_hr",t:"脈拍",u:"/分",f:["hr"]},
+ {k:"v_bp",t:"血圧",u:"mmHg",f:["sbp","dbp"]},
+ {k:"v_rr",t:"呼吸数",u:"/分",f:["rr"]},
+ {k:"v_spo2",t:"SpO₂",u:"%",f:["spo2"]},
+ {k:"v_o2",t:"酸素",u:"L/分",f:["o2"],dev:true,step:"0.5"}];
+const O2DEV=["","室内気","鼻カニュラ","簡易酸素マスク","リザーバーマスク","ネーザルハイフロー","NPPV","人工呼吸器"];
+const ORGANS=["全身・神経","呼吸器","循環器","腎・水電解質","消化器・栄養","内分泌・代謝","感染","皮膚・デバイス","ADL・安全","検査・連携","その他"];
+const SIDES={chart:"カルテで確認",exam:"診察で評価"};
+// [side, organ, title, numeric kind]
+const CANDS=[
+ ["chart","全身・神経","睡眠"],["chart","全身・神経","頓用薬の使用"],
+ ["chart","呼吸器","酸素量","o2r"],["chart","呼吸器","喀痰の量（看護記録）"],
+ ["chart","循環器","体重","wt"],["chart","循環器","心電図・モニター所見"],
+ ["chart","腎・水電解質","In-Outバランス","io"],["chart","腎・水電解質","尿量","urine"],
+ ["chart","消化器・栄養","食事摂取量"],["chart","消化器・栄養","排便回数","stool"],
+ ["chart","内分泌・代謝","血糖","bg"],
+ ["chart","感染","熱型"],
+ ["chart","ADL・安全","転倒リスク・安静度"],["chart","ADL・安全","リハビリの進み具合"],
+ ["chart","検査・連携","画像・生理検査の結果"],["chart","検査・連携","他職種・他科からの返答"],
+ ["exam","全身・神経","意識・せん妄"],["exam","全身・神経","症状・疼痛"],
+ ["exam","呼吸器","呼吸音"],["exam","呼吸器","呼吸様式"],["exam","呼吸器","喀痰の性状"],
+ ["exam","循環器","心音"],["exam","循環器","浮腫"],["exam","循環器","頸静脈怒張"],
+ ["exam","消化器・栄養","腹部所見"],["exam","消化器・栄養","嚥下・むせ"],
+ ["exam","感染","感染巣の所見（創部・刺入部など）"],
+ ["exam","皮膚・デバイス","ライン・カテーテル刺入部"],["exam","皮膚・デバイス","皮膚・褥瘡"]];
+const BGMODES={1:["測定値"],3:["朝食前","昼食前","夕食前"],4:["朝食前","昼食前","夕食前","眠前"]};
+const EXAMS=[ // name, image?, sub options (array) or "text"
+ ["血液検査",false],["尿検査",false],["心電図",false],["胸部X線",true],
+ ["エコー",true,["腹部","心臓","体表","下肢静脈","頸動脈","その他"]],
+ ["CT",true,"text"],["MRI",true,"text"],
+ ["内視鏡",true,["上部","下部","ERCP","気管支鏡"]],["培養検査",false,"cult"],["その他",false,"text"]];
+const SPEC=["血液","尿","喀痰","皮膚（創部・膿）","デバイス（カテーテル先端など）","便","髄液","その他"];
+const ABX=["CEZ","CTRX","CMZ","SBT/ABPC","TAZ/PIPC","CFPM","MEPM","VCM","LVFX","AZM","MINO","ST合剤","MNZ","AMPC","AMPC/CVA"];
+const DEVTYPES=[["mon","バイタルモニター装着"],["foley","尿道カテーテル留置"],["cv","CV・PICC挿入"]];
+const P2END=[["mon","バイタルモニターの取り外し",""],["vis","ビジブル確認",""],["foley","尿道カテーテルを抜去できるか",""],["yosoku","予測指示の変更","発熱時・不眠時・疼痛時など"],["cv","CV・PICCの抜去","CV・PICC挿入中のみ表示"],["dc","退院支援の介入","「介入した」で①に退院準備が出ます"]];
+const ADMQ=[ // key, label
+ ["allergy","アレルギー"],["meds","持参薬・お薬手帳、継続薬剤"],["rehab","リハビリオーダー"],["adl","入院前のADL・生活状況・キーパーソン"],
+ ["dnar","DNAR"],["device","デバイス（CV・尿道カテーテル）"],["yosoku","予測指示"],["tx","入院時治療"],["cult","培養提出"]];
+const P2DAILY=[["rx","処方薬のオーダー","定期処方・臨時処方の残日数と継続"],["inj","注射薬のオーダー","輸液・注射の継続と翌日分"]];
+const DCITEMS=[["診療情報提供書",3],["検査結果の印刷",2],["CD-ROM作成依頼",2],["退院療養計画書",3],["退院時処方",2],["退院時IC",2]];
+const CULT=["血液培養","尿培養","喀痰培養","便培養","CDトキシン","創部・膿培養","髄液培養","その他"];
+const IO={metaPerKg:5,insPerKg:15,feverPct:15,feverBase:37.0,foodWater:1000,stoolPer:100,entWater:85};
+const C1="#2457a6",C2="#d0731f",C3="#009a8a",C4="#8a4bc2"; // validated categorical order
+
+/* ================= 状態 ================= */
+let S=load(), ui={view:"list",pid:null,date:today(),ptab:"1",edit:false,side:"chart",ioOpen:false,calM:null,calSel:null,open:{},ex:{cat:"血液検査"},dkind:"abx"};
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.patients)return s}catch(e){}return{patients:[]}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function uid(){return Math.random().toString(36).slice(2,9)}
+function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function today(){return ymd(new Date())}
+function pd(s){const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)}
+function add(s,n){const d=pd(s);d.setDate(d.getDate()+n);return ymd(d)}
+function diff(a,b){return Math.round((pd(b)-pd(a))/864e5)}
+function md(s){const d=pd(s);return(d.getMonth()+1)+"/"+d.getDate()}
+function wd(s){return"日月火水木金土"[pd(s).getDay()]}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function has(v){return v!==undefined&&v!==null&&v!==""&&isFinite(parseFloat(v))}
+function num(v){const n=parseFloat(v);return isFinite(n)?n:0}
+function r0(n){return Math.round(n)}
+function sgn(n){return(n>0?"+":n<0?"−":"±")+Math.abs(r0(n)).toLocaleString()}
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),1800)}
+function norm(p){for(const k of["checks","vals","p2log","events"])p[k]=p[k]||{};for(const k of["extra","exams","drugs","ics"])p[k]=p[k]||[];
+  p.adm=p.adm||{};const A=p.adm;A.cultures=A.cultures||[];A.date=A.date||p.admit||today();
+  if(!p.problems)p.problems=p.dx?[p.dx]:[];p.memos=p.memos||[];p.devOther=p.devOther||[];p.dc=p.dc||{date:"",dest:"",st:{}};p.bgMode=p.bgMode||3;p.admit=p.admit||today();return p}
+function admPending(p){const a=p.adm,L=[];
+  if(!a.allergy)L.push("allergy");if(a.meds!=="done")L.push("meds");if(!a.rehab||a.rehab==="todo")L.push("rehab");if(!a.adl)L.push("adl");
+  if(!a.dnar||a.dnar==="unk")L.push("dnar");if(a.cv==null||a.foley==null)L.push("device");if(a.yosoku!=="done")L.push("yosoku");if(a.tx!=="done")L.push("tx");if(a.cult==null)L.push("cult");return L}
+function allCultures(p){return(p.adm.cult?p.adm.cultures.map(c=>({...c,src:"adm"})):[]).concat(p.exams.filter(e=>e.cat==="培養検査").map(e=>({id:e.id,type:e.sub||"培養",date:e.date,final:e.final,src:"ex"})))}
+function probText(p){return p.problems.map((x,j)=>"#"+(j+1)+" "+x).join("　")}
+function P(){const p=S.patients.find(p=>p.id===ui.pid);return p&&norm(p)}
+function V(p,d){return p.vals[d]||{}}
+function setV(p,d,f,v){p.vals[d]=p.vals[d]||{};if(v===""||v==null)delete p.vals[d][f];else p.vals[d][f]=v}
+function rec(p,d,k){const r=(p.checks[d]||{})[k];return r&&typeof r==="object"?r:null}
+function R(p,d,k){p.checks[d]=p.checks[d]||{};let r=p.checks[d][k];if(!r||typeof r!=="object")r=p.checks[d][k]={};return r}
+function keepScroll(fn){const y=scrollY;fn();scrollTo(0,y)}
+
+/* ================= 判定ロジック ================= */
+function examName(e){return e.cat+(e.sub?"（"+e.sub+"）":"")}
+function isImg(e){const x=EXAMS.find(x=>x[0]===e.cat);return !!(x&&x[1])}
+function reportVisible(e,d){return isImg(e)&&e.date<=d&&(!e.reportDone||d<=e.reportDone)}
+function cultVisible(c,d){return c.date<=d&&(!c.final||d<=c.final)}
+// ① 項目
+function items1(p,d){
+  const L=[];
+  VITALS.forEach(v=>L.push({k:v.k,sec:"A",grp:"バイタル",t:v.t,vital:v,side:"chart"}));
+  L.push({k:"night",sec:"A",grp:"夜間",t:"夜間イベント（カルテ記載）",h:"看護記録・当直記録",side:"chart"});
+  admPending(p).forEach(k=>{if(d>p.adm.date)L.push({k:"adm_"+k,sec:"B",t:"入院時確認："+ADMQ.find(x=>x[0]===k)[1],h:"未確認の項目です",adm:k,side:"chart"})});
+  p.exams.filter(e=>e.date===d&&e.cat!=="培養検査").forEach(e=>L.push({k:"ex_"+e.id,sec:"B",t:"結果確認："+examName(e),h:"本日施行",side:"chart"}));
+  p.exams.filter(e=>reportVisible(e,d)).forEach(e=>L.push({k:"rp_"+e.id,sec:"B",t:`レポート確認：${md(e.date)}施行 ${examName(e)}`,h:"確認済みにすると翌日から表示しません",report:e,side:"chart"}));
+  allCultures(p).filter(c=>cultVisible(c,d)).forEach(c=>L.push({k:"cu_"+c.id,sec:"B",t:"培養結果："+c.type,h:md(c.date)+"提出",cult:c,side:"chart"}));
+  p.extra.slice().sort((a,b)=>ORGANS.indexOf(a.organ)-ORGANS.indexOf(b.organ)).forEach(x=>L.push({k:"x_"+x.id,sec:"C",side:x.side,organ:x.organ,t:x.t,nk:x.nk,extra:x}));
+  return L;
+}
+function prog1(p,d){const L=items1(p,d);return{L,n:L.filter(i=>rec(p,d,i.k)?.s).length,ng:L.filter(i=>rec(p,d,i.k)?.s==="ng").length,total:L.length}}
+// ②
+function lastEnd(p,k,d){let e=null;for(const x in p.p2log){if(x<d&&p.p2log[x][k]==="end"&&(!e||x>e))e=x}return e}
+function endedOn(p,k,d){let e=null;for(const x in p.p2log){if(x<=d&&p.p2log[x][k]==="end"&&(!e||x>e))e=x}return e}
+function devEvents(p,k){return(p.events[k]||[]).concat((k==="cv"&&p.adm.cv===true)||(k==="foley"&&p.adm.foley===true)?[p.admit]:[])}
+function p2visible(p,k,d){const le=lastEnd(p,k,d),ev=devEvents(p,k);
+  if(k==="cv"||(k==="foley"&&p.adm.foley===false))return ev.some(e=>e<=d&&(!le||e>le));
+  return !le||ev.some(e=>e>le&&e<=d)}
+function abxEnd(x){return add(x.start,num(x.days)-1)}
+function items2(p,d){
+  const L=P2END.filter(x=>p2visible(p,x[0],d)).map(x=>({k:x[0],t:x[1],h:x[2],type:"end"}));
+  p.drugs.forEach(x=>{
+    if(x.kind==="abx"&&has(x.days)){const pe=abxEnd(x),k="ab_"+x.id;if(d>=x.start&&d>=add(pe,-2)&&!lastEnd(p,k,d)){const day=diff(x.start,d)+1;L.push({k,t:`抗菌薬：${x.name}`,h:`Day ${day}/${x.days}・${md(pe)}終了予定${day>num(x.days)?"（予定超過）":""}`,type:"end",drug:x})}}
+    if(x.kind==="po"&&x.po==="reg"){const k="po_"+x.id;if(d>=x.start&&!lastEnd(p,k,d))L.push({k,t:`定期内服：${x.name}`,h:`${md(x.start)}開始`,type:"end",drug:x})}
+  });
+  return L.concat(P2DAILY.map(x=>({k:x[0],t:x[1],h:x[2],type:"daily"})));
+}
+function prog2(p,d){const L=items2(p,d),r=p.p2log[d]||{};return{L,n:L.filter(i=>r[i.k]).length,total:L.length}}
+function dcStart(p,d){let s=null;for(const x in p.p2log){if(x<d&&p.p2log[x].dc==="end"&&(!s||x<s))s=x}return s}
+function drugActive(p,x,d){ // 投与中か（カレンダー用）
+  const k=(x.kind==="abx"?"ab_":"po_")+x.id,end=endedOn(p,k,"9999-12-31");
+  if(d<x.start)return false;
+  if(x.kind==="abx"){const last=end&&end<abxEnd(x)?end:(end||abxEnd(x));return d<=(end?end:abxEnd(x))}
+  if(x.po==="reg")return !end||d<=end;
+  return false;
+}
+// In-Out
+function calcIO(p,d){
+  const v=V(p,d);const wt=has(v.wt)?num(v.wt):num(p.weight);
+  const meals=["m1","m2","m3"].filter(k=>has(v[k]));const ratio=meals.length?meals.reduce((a,k)=>a+num(v[k]),0)/30:0;
+  const food=IO.foodWater*ratio,ent=num(v.ent)*IO.entWater/100,meta=IO.metaPerKg*wt;
+  const fx=has(v.bt)?Math.max(0,num(v.bt)-IO.feverBase):0;const ins=IO.insPerKg*wt*(1+IO.feverPct/100*fx);
+  const stool=num(v.stool)*IO.stoolPer;
+  const IN=[["経口水分（飲水）",num(v.oral)],[`食事中水分（${(ratio*10).toFixed(1)}割）`,food],["輸液",num(v.iv)],[`経管栄養×${IO.entWater}%`,ent],["その他",num(v.inOther)],[`代謝水 ${IO.metaPerKg}mL×${wt||"?"}kg`,meta]];
+  const OUT=[["尿量",num(v.urine)],[`便 ${num(v.stool)}回×${IO.stoolPer}mL`,stool],["嘔吐・ドレーン・胃管",num(v.drainOut)],[`不感蒸泄 ${IO.insPerKg}mL×${wt||"?"}kg${fx>0?`×(1+${IO.feverPct}%×${fx.toFixed(1)})`:""}`,ins]];
+  const tin=IN.reduce((a,x)=>a+x[1],0),tout=OUT.reduce((a,x)=>a+x[1],0);
+  const any=["m1","m2","m3","oral","iv","ent","inOther","urine","drainOut"].some(k=>has(v[k]));
+  return{wt,IN,OUT,tin,tout,bal:tin-tout,any,fx};
+}
+
+/* ================= 画面 ================= */
+function render(){
+  const back=document.getElementById("back"),ttl=document.getElementById("ttl");
+  if(ui.view==="list"){back.style.display="none";ttl.textContent="回診アシスト";renderList();memoBar();return}
+  back.style.display="block";ttl.textContent=P().label;
+  ({"1":render1,"2":render2,"3":render3,"4":render4})[ui.ptab]();
+  memoBar();
+}
+function memoBar(){
+  const bar=document.getElementById("memobar");
+  if(ui.view==="list"){bar.style.display="none";document.body.style.paddingBottom="";return}
+  const p=P();bar.style.display="block";
+  if(!ui.memoOpen){const last=p.memos[p.memos.length-1];
+    bar.innerHTML=`<button class="mbtn" id="mOpen"><span class="mt">メモ ${p.memos.length?`<span class="num">${p.memos.length}</span>`:""}</span><span class="ml">${last?esc(last.text)+"（"+md(last.date)+"）":"タップして書く"}</span><span>▲</span></button>`;
+    bar.querySelector("#mOpen").onclick=()=>{ui.memoOpen=true;memoBar()};document.body.style.paddingBottom="60px";return}
+  bar.innerHTML=`<div class="mpanel"><div class="row" style="justify-content:space-between"><b>メモ <span class="muted" style="font-weight:400">${esc(p.label)}・④の一番上にも表示</span></b><button class="btn sm" id="mClose">閉じる ▼</button></div>
+    <div class="mitems">${p.memos.map(x=>`<div class="mi"><textarea data-mid="${x.id}" rows="1">${esc(x.text)}</textarea><span class="md">（${md(x.date)}）</span><button class="rmx" data-mdel="${x.id}" aria-label="削除">×</button></div>`).join("")||'<div class="muted">まだありません。</div>'}</div>
+    <div class="row" style="margin-top:6px;flex-wrap:nowrap"><textarea id="mNew" rows="2" placeholder="書き足す内容（記述日は自動でつきます）" style="flex:1"></textarea><button class="btn" id="mAdd">追加</button></div></div>`;
+  document.body.style.paddingBottom="320px";
+  const fit=t=>{t.style.height="auto";t.style.height=t.scrollHeight+"px"};
+  bar.querySelectorAll("[data-mid]").forEach(t=>{fit(t);t.oninput=()=>{fit(t);const x=p.memos.find(m=>m.id===t.dataset.mid);x.text=t.value;save()};t.onchange=()=>{if(ui.ptab==="4"&&ui.view==="pt")keepScroll(render4)}});
+  bar.querySelectorAll("[data-mdel]").forEach(b=>b.onclick=()=>{if(b.dataset.c){p.memos=p.memos.filter(m=>m.id!==b.dataset.mdel);save();if(ui.ptab==="4")keepScroll(render4);memoBar()}else{b.dataset.c=1;b.textContent="削除";b.classList.add("cf")}});
+  bar.querySelector("#mClose").onclick=()=>{ui.memoOpen=false;memoBar()};
+  bar.querySelector("#mAdd").onclick=()=>{const v=mNew.value.trim();if(!v){mNew.focus();return}p.memos.push({id:uid(),text:v,date:today()});save();if(ui.ptab==="4")keepScroll(render4);memoBar();const n=document.getElementById("mNew");n&&n.focus()};
+  const mi=bar.querySelector(".mitems");mi.scrollTop=mi.scrollHeight;
+}
+document.getElementById("back").onclick=()=>{ui.view="list";ui.edit=false;render();scrollTo(0,0)};
+function dateNav(){const t=ui.date!==today();return`<div class="dnav ${t?"t":""}"><button data-d="-1" aria-label="前日"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><input type="date" id="dsel" value="${ui.date}"><button data-d="1" aria-label="翌日"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>${t?'<button id="dtoday">今日</button>':""}</div>`}
+function bindCommon(m,p){
+  m.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{ui.date=add(ui.date,+b.dataset.d);render()});
+  m.querySelector("#dsel").onchange=e=>{ui.date=e.target.value||today();render()};
+  const t=m.querySelector("#dtoday");if(t)t.onclick=()=>{ui.date=today();render()};
+  m.querySelectorAll("[data-pt]").forEach(b=>b.onclick=()=>{ui.ptab=b.dataset.pt;ui.edit=false;render();scrollTo(0,0)});
+  const e=m.querySelector("#editP");if(e)e.onclick=()=>ptForm(p);
+}
+function bmi(p){return has(p.weight)&&has(p.height)&&num(p.height)>0?(num(p.weight)/Math.pow(num(p.height)/100,2)).toFixed(1):""}
+function hdr(p,extra){
+  const g1=prog1(p,ui.date),g2=prog2(p,ui.date),hd=diff(p.admit,ui.date)+1;
+  return`<div class="card"><div class="row" style="justify-content:space-between"><div><b style="font-size:17px">${esc(p.label)}</b> <span class="muted">${[p.age?p.age+"歳":"",p.weight?p.weight+"kg":"",p.height?p.height+"cm":"",bmi(p)?"BMI "+bmi(p):""].filter(Boolean).join("・")}</span>${p.problems.length?`<div class="probs">${p.problems.map((x,j)=>`<span>#${j+1} ${esc(x)}</span>`).join("")}</div>`:""}<div class="muted">入院 <span class="num">${hd>0?hd:"—"}</span> 日目（${md(p.admit)}入院）${p.dc.date?`・退院予定 ${md(p.dc.date)}`:""}</div></div><button class="btn ghost sm" id="editP">患者情報</button></div>
+   <div class="dhead" style="margin-top:8px"><b>${md(ui.date)}（${wd(ui.date)}）</b>${dateNav()}</div>
+   <div class="ptabs">
+    <button data-pt="1" class="${ui.ptab==="1"?"on":""}">① 毎朝チェック<small>${g1.n}/${g1.total}</small></button>
+    <button data-pt="2" class="${ui.ptab==="2"?"on":""}">② 経過評価<small>${g2.n}/${g2.total}</small></button>
+    <button data-pt="3" class="${ui.ptab==="3"?"on":""}">③ 予定入力<small>入力</small></button>
+    <button data-pt="4" class="${ui.ptab==="4"?"on":""}">④ スケジュール<small>経過</small></button></div>${extra||""}</div>`;
+}
+
+/* ---------- 患者一覧 ---------- */
+function renderList(){
+  const m=document.getElementById("main");
+  const TE=[];S.patients.forEach(p=>{norm(p);
+    p.ics.filter(x=>x.date===ui.date).forEach(x=>TE.push({p,o:"0"+(x.time||"99:99"),c:"ic",t:`IC ${x.time||"時刻未定"}${x.memo?"　"+x.memo:""}`}));
+    p.exams.filter(e=>e.date===ui.date).forEach(e=>TE.push({p,o:"1",c:"ex",t:e.cat==="培養検査"?`${e.sub||""}培養`:`${examName(e)}`}));
+    DEVTYPES.forEach(([k,l])=>(p.events[k]||[]).filter(x=>x===ui.date).forEach(()=>TE.push({p,o:"2",c:"dv",t:l})));
+    p.devOther.filter(o=>o.date===ui.date).forEach(o=>TE.push({p,o:"2",c:"dv",t:o.text}));
+    p.drugs.filter(x=>x.kind==="abx"&&has(x.days)&&abxEnd(x)===ui.date&&!lastEnd(p,"ab_"+x.id,ui.date)).forEach(x=>TE.push({p,o:"3",c:"ab",t:`${x.name} 終了予定（${x.days}日目）`}));
+    p.drugs.filter(x=>x.start===ui.date).forEach(x=>TE.push({p,o:"4",c:x.kind==="abx"?"ab":"po",t:`${x.name} 開始${x.kind==="po"?(x.po==="reg"?"（定期内服）":"（頓服）"):""}`}));
+    if(p.dc.date===ui.date)TE.push({p,o:"5",c:"dc",t:"退院予定"+(p.dc.dest?"　"+p.dc.dest:"")});});
+  TE.sort((a,b)=>a.o.localeCompare(b.o));
+  m.innerHTML=`<div class="card"><div class="dhead"><b>${md(ui.date)}（${wd(ui.date)}）</b>${dateNav()}</div></div>
+  <div class="card"><h2>${ui.date===today()?"本日":md(ui.date)}の予定 <span class="muted" style="font-weight:400">全患者</span></h2>
+   ${TE.length?TE.map(e=>`<div class="te" data-id="${e.p.id}"><span class="ev ${e.c} tedot"></span><b class="tel">${esc(e.p.label)}</b><span>${esc(e.t)}</span></div>`).join(""):'<p class="muted" style="margin:0">予定はありません。</p>'}</div>
+  <div class="card">${S.patients.length?S.patients.map(p=>{norm(p);const g=prog1(p,ui.date),g2=prog2(p,ui.date);
+    const chips=g.L.filter(i=>i.sec==="B").map(i=>`<span class="chip">${esc(i.t.split("：")[0]==="結果確認"?i.t.replace("結果確認：",""):i.t.split("：")[0])}</span>`).join("")
+      +p.ics.filter(x=>x.date===ui.date).map(x=>`<span class="chip ic">IC ${esc(x.time||"")}</span>`).join("");
+    return`<div class="pl" data-id="${p.id}"><div class="nm">${esc(p.label)}</div><div class="info">${p.problems.length?`<div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">${esc(probText(p))}</div>`:""}<div class="prog"><i style="width:${g.total?g.n/g.total*100:0}%"></i></div><div class="chips">${chips}</div></div>
+      <div class="cnt num">${g.ng?`<span class="ngc">異常${g.ng}</span> `:""}① ${g.n}/${g.total}<br><span style="color:var(--blue)">② ${g2.n}/${g2.total}</span></div></div>`}).join("")
+    :'<p class="muted">患者がまだ登録されていません。</p>'}
+    <button class="btn" id="addP" style="margin-top:10px">＋ 患者を追加</button></div>
+  <p class="muted">青いラベルはその日の条件つき項目（検査・レポート・培養）、紫はICの予定です。入力はこの端末のブラウザ内だけに保存されます。氏名・IDは入力しないでください。</p>`;
+  m.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{ui.date=add(ui.date,+b.dataset.d);render()});
+  m.querySelector("#dsel").onchange=e=>{ui.date=e.target.value||today();render()};
+  const t=m.querySelector("#dtoday");if(t)t.onclick=()=>{ui.date=today();render()};
+  m.querySelectorAll("[data-id]").forEach(r=>r.onclick=()=>{ui.pid=r.dataset.id;ui.view="pt";ui.ptab="1";ui.memoOpen=false;render();scrollTo(0,0)});
+  m.querySelector("#addP").onclick=()=>ptForm();
+}
+
+/* ---------- ① ---------- */
+function numInput(f,val,step,ph){return`<input type="number" inputmode="decimal" class="ni" data-v="${f}" value="${esc(val??"")}" ${step?`step="${step}"`:""} ${ph?`placeholder="${ph}"`:""}>`}
+function numsHTML(p,i){
+  const v=V(p,ui.date);
+  if(i.vital){const x=i.vital;let h="";
+    if(x.k==="v_bp")h=`<span class="grp">${numInput("sbp",v.sbp,1,"上")}<span>/</span>${numInput("dbp",v.dbp,1,"下")}<span class="u">${x.u}</span></span>`;
+    else if(x.dev)h=`<span class="grp"><select data-v="o2dev">${O2DEV.map(o=>`<option value="${o}" ${v.o2dev===o?"selected":""}>${o||"投与方法"}</option>`).join("")}</select>${numInput("o2",v.o2,x.step)}<span class="u">${x.u}</span></span>`;
+    else h=`<span class="grp">${numInput(x.f[0],v[x.f[0]],x.step)}<span class="u">${x.u}</span></span>`;
+    return`<div class="nums">${h}</div>`}
+  switch(i.nk){
+    case "stool":return`<div class="nums"><span class="grp">${numInput("stool",v.stool,1)}<span class="u">回</span></span></div>`;
+    case "urine":return`<div class="nums"><span class="grp">${numInput("urine",v.urine,10)}<span class="u">mL</span></span></div>`;
+    case "wt":{const pv=prevVal(p,"wt");return`<div class="nums"><span class="grp">${numInput("wt",v.wt,"0.1")}<span class="u">kg</span></span>${pv&&has(v.wt)?`<span class="lb">前回 ${md(pv.d)} 比 ${(num(v.wt)-pv.v>=0?"+":"−")+Math.abs(num(v.wt)-pv.v).toFixed(1)}kg</span>`:""}</div>`}
+    case "o2r":return`<div class="nums"><span class="grp">${numInput("o2min",v.o2min,"0.5")}<span>〜</span>${numInput("o2max",v.o2max,"0.5")}<span class="u">L/分</span></span></div>`;
+    case "bg":{const labs=BGMODES[p.bgMode];return`<div class="nums"><select data-bgmode style="width:auto">${[1,3,4].map(n=>`<option value="${n}" ${p.bgMode==n?"selected":""}>${n}検</option>`).join("")}</select>${labs.map((l,j)=>`<span class="grp"><span class="lb">${l}</span>${numInput("bg"+(j+1),v["bg"+(j+1)],1)}</span>`).join("")}<span class="u">mg/dL</span></div>`}
+    case "io":{const c=calcIO(p,ui.date);return`<div class="nums"><span class="lb">バランス</span><b class="num" id="ioBal" style="color:${Math.abs(c.bal)>=1000?"var(--bad)":Math.abs(c.bal)>=500?"var(--warn)":"var(--ink)"}">${c.any?sgn(c.bal)+" mL":"未計算"}</b><button class="btn ghost sm" id="ioT">${ui.ioOpen?"計算を閉じる":"計算を開く"}</button></div>${ui.ioOpen?ioBox(p):""}`}
+  }
+  return"";
+}
+function prevVal(p,f){const ks=Object.keys(p.vals).filter(k=>k<ui.date&&has(p.vals[k][f])).sort();if(!ks.length)return null;const k=ks[ks.length-1];return{d:k,v:num(p.vals[k][f])}}
+function ioBox(p){
+  const v=V(p,ui.date),c=calcIO(p,ui.date);
+  const fi=(f,l,u,st)=>`<label class="f">${l}<span class="grp" style="display:flex;gap:4px;align-items:center"><input type="number" inputmode="decimal" data-v="${f}" value="${esc(v[f]??"")}" ${st?`step="${st}"`:""}><span class="u">${u}</span></span></label>`;
+  return`<div class="iobox"><div class="muted" style="margin-bottom:4px">In</div><div class="grid">
+    ${fi("m1","食事 朝","割","0.5")}${fi("m2","食事 昼","割","0.5")}${fi("m3","食事 夕","割","0.5")}
+    ${fi("oral","飲水","mL")}${fi("iv","輸液","mL")}${fi("ent","経管栄養","mL")}${fi("inOther","その他","mL")}</div>
+   <div class="muted" style="margin:8px 0 4px">Out・その他</div><div class="grid">
+    ${fi("urine","尿量","mL")}${fi("stool","排便回数","回")}${fi("drainOut","嘔吐・ドレーン等","mL")}${fi("wt","体重（空欄は基準体重）","kg","0.1")}</div>
+   <div class="muted" style="margin-top:4px">体温は①の「体温」（${has(v.bt)?v.bt+"℃":"未入力"}）を使います。尿量・排便回数・体重は①の同じ項目と共通です。</div>
+   <div class="iores"><div class="s"><div class="k">In</div><div class="v num">${r0(c.tin).toLocaleString()}</div></div><div class="s"><div class="k">Out</div><div class="v num">${r0(c.tout).toLocaleString()}</div></div><div class="s"><div class="k">バランス</div><div class="v num">${sgn(c.bal)}</div></div></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+    <table class="br">${c.IN.map(x=>`<tr><td>${x[0]}</td><td>${r0(x[1])}</td></tr>`).join("")}<tr class="tot"><td>In</td><td>${r0(c.tin)}</td></tr></table>
+    <table class="br">${c.OUT.map(x=>`<tr><td>${x[0]}</td><td>${r0(x[1])}</td></tr>`).join("")}<tr class="tot"><td>Out</td><td>${r0(c.tout)}</td></tr></table></div>
+   <div class="formula"><b>計算式</b><br>
+    In ＝ 飲水 ＋ 食事中水分 ＋ 輸液 ＋ 経管栄養 ＋ その他 ＋ 代謝水<br>
+    Out ＝ 尿量 ＋ 便 ＋ 嘔吐・ドレーン等 ＋ 不感蒸泄<br>
+    バランス ＝ In − Out<br>
+    ・食事中水分 ＝ ${IO.foodWater}mL ×（朝＋昼＋夕の割合 ÷ 30）<br>
+    ・経管栄養の水分 ＝ 投与量 × ${IO.entWater}%<br>
+    ・代謝水 ＝ ${IO.metaPerKg}mL/kg × 体重<br>
+    ・便 ＝ 回数 × ${IO.stoolPer}mL<br>
+    ・不感蒸泄 ＝ ${IO.insPerKg}mL/kg × 体重 ×（1 ＋ ${IO.feverPct}% ×（体温 − ${IO.feverBase}℃））<br>
+    <span class="muted">代謝水・不感蒸泄・食事中水分は推定値です。</span></div></div>`;
+}
+function row1(p,i){
+  const r=rec(p,ui.date,i.k)||{},st=r.s||"",pr=rec(p,add(ui.date,-1),i.k);
+  let btn;
+  if(i.adm){const quick=["meds","yosoku","tx"].includes(i.adm);btn=`<div class="ops">${quick?`<button class="btn sm" data-admok="${i.adm}">確認済み</button>`:""}<button class="btn ghost sm" data-admopen>入院時確認を開く</button></div>`;
+    return`<div class="ck" style="background:var(--warn-soft)"><div class="body"><div class="t">${esc(i.t)}</div><div class="h">${esc(i.h)}</div></div>${btn}</div>`}
+  if(i.report)btn=`<div class="st"><button data-st="todo" data-k="${i.k}" class="n ${st==="todo"?"on":""}">未</button><button data-st="done" data-k="${i.k}" class="g ${st==="done"?"on":""}">確認済み</button></div>`;
+  else btn=`<div class="st"><button data-st="ok" data-k="${i.k}" class="g ${st==="ok"?"on":""}">異常なし</button><button data-st="ng" data-k="${i.k}" class="r ${st==="ng"?"on":""}">異常あり</button></div>`;
+  const nums=numsHTML(p,i);
+  return`<div class="ck ${st==="ng"?"ng":st?"ok":""}" data-row="${i.k}"><div class="body"><div class="t">${esc(i.t)}</div>${i.h?`<div class="h">${esc(i.h)}</div>`:""}${pr?.s==="ng"?`<div class="prev">前日：異常あり${pr.memo?"　"+esc(pr.memo):""}</div>`:""}</div>${btn}
+   ${i.cult||i.extra?`<div class="ops">${i.cult?`<button class="btn ghost sm" data-fin="${i.cult.id}">${i.cult.final===ui.date?"最終報告確認済み ✓":"最終報告確認済み"}</button>`:""}${i.extra?`<button class="rm" data-rm="${i.extra.id}">削除</button>`:""}</div>`:""}
+   ${nums}${st==="ng"?`<div class="memo"><input data-memo="${i.k}" value="${esc(r.memo)}" placeholder="メモ（所見・対応など）"></div>`:""}</div>`;
+}
+function render1(){
+  const p=P(),m=document.getElementById("main"),g=prog1(p,ui.date),L=g.L,dcs=dcStart(p,ui.date);
+  const todayIC=p.ics.filter(x=>x.date===ui.date);
+  const sub=a=>a.map(i=>row1(p,i)).join("");
+  const organGroups=side=>{const a=L.filter(i=>i.sec==="C"&&i.side===side);if(!a.length)return`<div class="empty">追加項目はありません</div>`;
+    return ORGANS.filter(o=>a.some(i=>i.organ===o)).map(o=>`<div class="organ">${o}</div>`+sub(a.filter(i=>i.organ===o))).join("")};
+  const cnt=side=>{const a=L.filter(i=>i.side===side);const ng=a.filter(i=>rec(p,ui.date,i.k)?.s==="ng").length;return`${ng?`<span class="ngc">異常${ng}</span> `:""}${a.filter(i=>rec(p,ui.date,i.k)?.s).length}/${a.length}`};
+  const avail=CANDS.filter(c=>c[0]===ui.side&&!p.extra.some(x=>x.t===c[2]&&x.side===c[0]));
+  m.innerHTML=hdr(p,`<div class="row" style="margin-top:10px"><div class="prog"><i style="width:${g.total?g.n/g.total*100:0}%"></i></div><span class="num">${g.n}/${g.total}</span></div>
+    ${todayIC.length?`<div class="today">本日のIC：${todayIC.map(x=>esc((x.time||"")+" "+(x.memo||""))).join("、")}</div>`:""}
+    ${g.ng?`<div class="ngsum">異常あり ${g.ng}件：${L.filter(i=>rec(p,ui.date,i.k)?.s==="ng").map(i=>esc(i.t)).join("、")}</div>`:""}
+    ${g.total&&g.n===g.total?'<div class="allok">本日の確認がすべて完了しました</div>':""}`)+`
+  <div class="card side ${ui.edit?"editing":""}">
+    <div class="sidehd"><h2>1. カルテで確認</h2><span class="num muted">${cnt("chart")}</span></div>
+    <h3><span class="badge b-a">A</span>全症例で必ず確認</h3>
+    <div class="organ">バイタル</div>${sub(L.filter(i=>i.vital))}
+    <div class="organ">夜間</div>${sub(L.filter(i=>i.k==="night"))}
+    <h3><span class="badge b-b">B</span>条件つき（検査・レポート・培養）</h3>${sub(L.filter(i=>i.sec==="B"))||'<div class="empty">本日の対象なし</div>'}
+    <h3><span class="badge b-c">C</span>この患者で追加した項目</h3>${organGroups("chart")}
+    <button class="btn ghost sm addbtn" data-open="chart">＋ カルテ確認の項目を追加・削除</button></div>
+  <div class="card side exam ${ui.edit?"editing":""}">
+    <div class="sidehd"><h2>2. 診察で評価</h2><span class="num muted">${cnt("exam")}</span></div>
+    <h3><span class="badge b-c">C</span>この患者で追加した項目</h3>${organGroups("exam")}
+    <button class="btn ghost sm addbtn" data-open="exam">＋ 診察評価の項目を追加・削除</button></div>
+  ${dcs?`<div class="card side dcc"><div class="sidehd"><h2>3. 退院準備</h2><span class="num muted">済み ${DCITEMS.filter((_,j)=>p.dc.st[j]==="done").length}/${DCITEMS.length}</span></div>
+    <div class="muted" style="margin-bottom:6px">${md(dcs)} 退院支援介入</div>
+    <div class="row"><label class="f">退院日<input type="date" id="dcDate" value="${esc(p.dc.date)}"></label><label class="f" style="flex:1;min-width:150px">退院先<input id="dcDest" value="${esc(p.dc.dest)}" placeholder="例: 自宅、施設名、転院先"></label></div>
+    ${p.dc.date?`<div class="muted" style="margin-top:4px">退院まであと <b class="num">${diff(ui.date,p.dc.date)}</b> 日</div>`:""}
+    <div style="margin-top:6px">${DCITEMS.map(([t,n],j)=>{const v=p.dc.st[j]||"todo";const opts=n===3?[["done","済み","g"],["att","指導医確認中","o"],["todo","未","n"]]:[["done","済み","g"],["todo","未","n"]];
+      return`<div class="ck"><div class="body"><div class="t">${t}</div></div><div class="st sm3">${opts.map(([k,l,c])=>`<button data-dc="${j}" data-v="${k}" class="${c} ${v===k?"on":""}">${l}</button>`).join("")}</div></div>`}).join("")}</div></div>`:""}
+  ${ui.edit?`<div class="card editpanel" id="ep"><div class="row" style="justify-content:space-between"><h2 style="margin:0">項目の追加・削除</h2><button class="btn sm" id="tEdit">完了</button></div>
+    <p class="muted" style="margin:4px 0 8px">追加済みの項目の右に「削除」が出ています。数値入力つきの項目には「数値」と表示しています。</p>
+    <div class="seg">${Object.entries(SIDES).map(([k,v])=>`<button data-side="${k}" class="${ui.side===k?"on":""}">${v}</button>`).join("")}</div>
+    ${avail.length?ORGANS.filter(o=>avail.some(c=>c[1]===o)).map(o=>`<div class="organ">${o}</div><div class="cands">${avail.filter(c=>c[1]===o).map(c=>`<button class="cand" data-add="${CANDS.indexOf(c)}">＋ ${esc(c[2])}${c[3]?" <small>数値</small>":""}</button>`).join("")}</div>`).join(""):'<p class="muted">すべて追加済みです</p>'}
+    <div class="muted" style="margin-top:12px">自由記載で追加</div>
+    <div class="row" style="margin-top:4px"><select id="fside">${Object.entries(SIDES).map(([k,v])=>`<option value="${k}" ${ui.side===k?"selected":""}>${v}</option>`).join("")}</select><select id="forg">${ORGANS.map(o=>`<option>${o}</option>`).join("")}</select></div>
+    <div class="row" style="margin-top:6px"><input id="free" placeholder="例: 抗てんかん薬の血中濃度" style="flex:1"><button class="btn sm" id="addFree">追加</button></div></div>`:""}
+  <div class="row" style="justify-content:flex-end"><button class="btn ghost sm" id="clr">本日の判定をクリア</button></div>`;
+  bindCommon(m,p);
+  m.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{const r=R(p,ui.date,b.dataset.k);r.s=r.s===b.dataset.st?"":b.dataset.st;
+    if(b.dataset.k.startsWith("rp_")){const e=p.exams.find(x=>"rp_"+x.id===b.dataset.k);e.reportDone=r.s==="done"?ui.date:null}
+    save();keepScroll(render1);if(r.s==="ng"){const f=document.querySelector(`[data-memo="${b.dataset.k}"]`);f&&f.focus({preventScroll:true})}});
+  m.querySelectorAll("[data-memo]").forEach(f=>f.oninput=()=>{R(p,ui.date,f.dataset.memo).memo=f.value;save()});
+  m.querySelectorAll("[data-v]").forEach(f=>{
+    const h=()=>{setV(p,ui.date,f.dataset.v,f.value);save()};
+    if(f.tagName==="SELECT")f.onchange=()=>{h();keepScroll(render1)};
+    else{f.oninput=()=>{h();const b=document.getElementById("ioBal");if(b){const c=calcIO(p,ui.date);b.textContent=c.any?sgn(c.bal)+" mL":"未計算"}};f.onchange=()=>{h();keepScroll(render1)}}});
+  const bm=m.querySelector("[data-bgmode]");if(bm)bm.onchange=()=>{p.bgMode=+bm.value;save();keepScroll(render1)};
+  const it=m.querySelector("#ioT");if(it)it.onclick=()=>{ui.ioOpen=!ui.ioOpen;keepScroll(render1)};
+  m.querySelectorAll("[data-admok]").forEach(b=>b.onclick=()=>{p.adm[b.dataset.admok]="done";save();keepScroll(render1);toast("入院時確認を更新しました")});
+  m.querySelectorAll("[data-admopen]").forEach(b=>b.onclick=()=>admForm(p,false));
+  m.querySelectorAll("[data-fin]").forEach(b=>b.onclick=()=>{const c=p.adm.cultures.find(x=>x.id===b.dataset.fin)||p.exams.find(x=>x.id===b.dataset.fin);c.type=c.type||c.sub||"培養";c.final=c.final===ui.date?null:ui.date;save();keepScroll(render1);if(c.final)toast(c.type+"：最終報告確認済み。翌日から表示しません")});
+  m.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{p.extra=p.extra.filter(x=>x.id!==b.dataset.rm);save();keepScroll(render1)});
+  m.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const c=CANDS[+b.dataset.add];p.extra.push({id:uid(),side:c[0],organ:c[1],t:c[2],nk:c[3]||null});save();keepScroll(render1)});
+  m.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ui.edit=true;ui.side=b.dataset.open;render1();document.getElementById("ep").scrollIntoView({behavior:"smooth",block:"start"})});
+  m.querySelectorAll("[data-side]").forEach(b=>b.onclick=()=>{ui.side=b.dataset.side;render1();document.getElementById("ep").scrollIntoView({block:"start"})});
+  const te=m.querySelector("#tEdit");if(te)te.onclick=()=>{ui.edit=false;render1()};
+  const af=m.querySelector("#addFree");if(af){const go=()=>{const v=free.value.trim();if(!v)return;const sd=fside.value,og=forg.value;p.extra.push({id:uid(),side:sd,organ:og,t:v});ui.side=sd;save();keepScroll(render1);toast(`${SIDES[sd]}・${og}に追加しました`)};af.onclick=go;free.onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing)go()}}
+  m.querySelector("#clr").onclick=()=>{delete p.checks[ui.date];save();keepScroll(render1)};
+  m.querySelectorAll("[data-dc]").forEach(b=>b.onclick=()=>{p.dc.st[b.dataset.dc]=b.dataset.v;save();keepScroll(render1)});
+  const dd=m.querySelector("#dcDate");if(dd){dd.onchange=()=>{p.dc.date=dd.value;save();keepScroll(render1)};m.querySelector("#dcDest").oninput=e=>{p.dc.dest=e.target.value;save()}}
+}
+
+/* ---------- ② ---------- */
+function render2(){
+  const p=P(),m=document.getElementById("main"),g=prog2(p,ui.date),L=g.L,r=p.p2log[ui.date]||{};
+  const ended=P2END.filter(x=>!p2visible(p,x[0],ui.date)&&lastEnd(p,x[0],ui.date)).map(x=>`${x[1]}（${md(lastEnd(p,x[0],ui.date))}）`)
+    .concat(p.drugs.filter(x=>{const k=(x.kind==="abx"?"ab_":"po_")+x.id;return lastEnd(p,k,ui.date)}).map(x=>`${x.name}（${md(lastEnd(p,(x.kind==="abx"?"ab_":"po_")+x.id,ui.date))}）`));
+  const row=i=>{const v=r[i.k]||"";
+    const btns=i.type==="daily"?`<button data-p2="${i.k}" data-v="ok" class="g ${v==="ok"?"on":""}">確認済み</button>`
+      :`<button data-p2="${i.k}" data-v="cont" class="g ${v==="cont"?"on":""}">${i.k==="dc"?"まだ":"継続"}</button><button data-p2="${i.k}" data-v="end" class="b ${v==="end"?"on":""}">${i.k==="dc"?"介入した":"終了"}</button>`;
+    const note=v==="end"?(i.k==="dc"?"明日から①に退院準備を表示します":i.drug?"明日から表示しません（カレンダーの投与期間もここで終了）":"明日から表示しません（③で予定が入ると再表示）"):"";
+    return`<div class="ck ${v==="end"?"p2-end":v?"ok":""}"><div class="body"><div class="t">${esc(i.t)}</div>${i.h?`<div class="h">${esc(i.h)}</div>`:""}${note?`<div class="endnote">${note}</div>`:""}</div><div class="st">${btns}</div></div>`};
+  m.innerHTML=hdr(p,`<div class="row" style="margin-top:10px"><div class="prog"><i style="width:${g.total?g.n/g.total*100:0}%"></i></div><span class="num">${g.n}/${g.total}</span></div>`)+`
+  <div class="card side p2c"><div class="sidehd"><h2>終了したら確認不要になる項目</h2></div>
+    <p class="muted" style="margin:2px 0 6px">①の結果を見て、続けるか終えるかを判断します。抗菌薬は終了予定日の2日前から、定期内服は開始日から表示します。</p>
+    ${L.filter(i=>i.type==="end").map(row).join("")||'<div class="empty">表示中の項目はありません</div>'}
+    ${ended.length?`<div class="ended">終了済み：${ended.map(esc).join("、")}</div>`:""}</div>
+  <div class="card side p2c"><div class="sidehd"><h2>毎日確認する項目</h2></div>${L.filter(i=>i.type==="daily").map(row).join("")}</div>`;
+  bindCommon(m,p);
+  m.querySelectorAll("[data-p2]").forEach(b=>b.onclick=()=>{p.p2log[ui.date]=p.p2log[ui.date]||{};const k=b.dataset.p2;if(p.p2log[ui.date][k]===b.dataset.v)delete p.p2log[ui.date][k];else p.p2log[ui.date][k]=b.dataset.v;save();keepScroll(render2)});
+}
+
+/* ---------- ③ ---------- */
+function render3(){
+  const p=P(),m=document.getElementById("main"),ex=EXAMS.find(x=>x[0]===ui.ex.cat);
+  const sorted=(a,f)=>a.slice().sort((x,y)=>f(x).localeCompare(f(y)));
+  const past=d=>d<ui.date?"past":"";
+  m.innerHTML=hdr(p)+`
+  <div class="card side"><h2>検査予定</h2>
+    <div class="form3"><label class="f">検査<select id="exCat">${EXAMS.map(x=>`<option ${x[0]===ui.ex.cat?"selected":""}>${x[0]}</option>`).join("")}</select></label>
+     ${ex[2]==="cult"?`<label class="f">検体<select id="exSpec">${SPEC.map(s=>`<option ${ui.ex.spec===s?"selected":""}>${s}</option>`).join("")}</select></label>${ui.ex.spec==="その他"?`<label class="f">検体（自由記載）<input id="exSub" placeholder="例: 胸水"></label>`:""}`
+     :ex[2]?(Array.isArray(ex[2])?`<label class="f">部位・種類<select id="exSub">${ex[2].map(s=>`<option>${s}</option>`).join("")}</select></label>`:`<label class="f">部位・内容<input id="exSub" placeholder="${ex[0]==="CT"?"例: 胸腹部造影":ex[0]==="MRI"?"例: 頭部":"例: 呼吸機能検査"}"></label>`):""}
+     <label class="f">予定日<input type="date" id="exDate" value="${ui.date}"></label>
+     <button class="btn" id="addEx">追加</button></div>
+    <div class="muted" style="margin-top:6px">検査当日の①に「結果確認」が出ます。画像検査（X線・エコー・CT・MRI・内視鏡）は、確認済みにするまで「レポート確認」も出ます。培養検査は提出日から「培養結果」が出て、最終報告確認済みにすると翌日から消えます。</div>
+    <ul class="lst">${sorted(p.exams,x=>x.date).map(e=>`<li class="${past(e.date)}"><span class="d">${md(e.date)}（${wd(e.date)}）</span><span class="x">${esc(examName(e))}${isImg(e)?`<span class="tag img">画像</span>`:""}${e.reportDone?`<span class="tag">レポート確認済み</span>`:""}</span><button class="btn danger sm" data-del="exams|${e.id}">削除</button></li>`).join("")||'<li class="muted">未登録</li>'}</ul></div>
+  <div class="card side"><h2>薬剤追加予定</h2>
+    <div class="seg" style="margin-bottom:8px"><button data-dk="abx" class="${ui.dkind==="abx"?"on":""}">抗菌薬</button><button data-dk="po" class="${ui.dkind==="po"?"on":""}">内服薬</button></div>
+    <datalist id="abxL">${ABX.map(a=>`<option value="${a}">`).join("")}</datalist>
+    ${ui.dkind==="abx"?`<div class="form3"><label class="f">種類<input id="dName" list="abxL" placeholder="例: CTRX"></label><label class="f">開始日（Day 1）<input type="date" id="dStart" value="${ui.date}"></label><label class="f">推奨治療期間（日）<input type="number" inputmode="numeric" id="dDays" placeholder="例: 7"></label><button class="btn" id="addD">追加</button></div>
+      <div class="muted" style="margin-top:6px">終了予定日の2日前から②に「継続／終了」の判断項目が出ます。</div>`
+    :`<div class="form3"><label class="f">薬剤名<input id="dName" placeholder="例: アムロジピン"></label><label class="f">開始日<input type="date" id="dStart" value="${ui.date}"></label><label class="f">区分<select id="dPo"><option value="reg">定期内服</option><option value="prn">頓服</option></select></label><button class="btn" id="addD">追加</button></div>
+      <div class="muted" style="margin-top:6px">定期内服は、開始日から②に「継続／終了」の判断項目が出ます。</div>`}
+    <ul class="lst">${sorted(p.drugs,x=>x.start).map(x=>`<li class="${x.kind==="abx"&&abxEnd(x)<ui.date?"past":""}"><span class="d">${md(x.start)}〜</span><span class="x">${esc(x.name)}${x.kind==="abx"?`<span class="tag abx">抗菌薬 ${x.days}日間</span>`:`<span class="tag">${x.po==="reg"?"定期内服":"頓服"}</span>`}</span><button class="btn danger sm" data-del="drugs|${x.id}">削除</button></li>`).join("")||'<li class="muted">未登録</li>'}</ul></div>
+  <div class="card side"><h2>IC予定</h2>
+    <div class="form3"><label class="f">日付<input type="date" id="icD" value="${ui.date}"></label><label class="f">時刻<input type="time" id="icT"></label><label class="f">内容（任意）<input id="icM" placeholder="例: 病状説明、家族同席"></label><button class="btn" id="addIC">追加</button></div>
+    <ul class="lst">${sorted(p.ics,x=>x.date+(x.time||"")).map(x=>`<li class="${past(x.date)}"><span class="d">${md(x.date)} ${esc(x.time||"")}</span><span class="x">${esc(x.memo||"IC")}</span><button class="btn danger sm" data-del="ics|${x.id}">削除</button></li>`).join("")||'<li class="muted">未登録</li>'}</ul></div>
+  <div class="card side"><h2>処置・デバイス予定</h2>
+    <div class="form3"><label class="f">内容<select id="dvK">${DEVTYPES.map(([k,l])=>`<option value="${k}" ${ui.dvk===k?"selected":""}>${l}</option>`).join("")}<option value="other" ${ui.dvk==="other"?"selected":""}>その他</option></select></label>${ui.dvk==="other"?`<label class="f">内容（自由記載）<input id="dvT" placeholder="例: 胸腔ドレーン挿入"></label>`:""}<label class="f">予定日<input type="date" id="dvD" value="${ui.date}"></label><button class="btn" id="addDv">追加</button></div>
+    <div class="muted" style="margin-top:6px">②で終了にした項目（モニター、尿道カテーテル、CV・PICC）が、この日から再び表示されます。「その他」は④のカレンダーにだけ表示します。</div>
+    <ul class="lst">${DEVTYPES.flatMap(([k,l])=>(p.events[k]||[]).map(d=>({k,l,d}))).concat(p.devOther.map(o=>({k:"other",l:o.text,d:o.date,id:o.id}))).sort((a,b)=>a.d.localeCompare(b.d)).map(x=>`<li class="${past(x.d)}"><span class="d">${md(x.d)}（${wd(x.d)}）</span><span class="x">${esc(x.l)}${x.k==="other"?'<span class="tag">その他</span>':""}</span><button class="btn danger sm" ${x.k==="other"?`data-devo="${x.id}"`:`data-dev="${x.k}|${x.d}"`}>削除</button></li>`).join("")||'<li class="muted">未登録</li>'}</ul></div>`;
+  bindCommon(m,p);
+  m.querySelector("#exCat").onchange=e=>{ui.ex.cat=e.target.value;ui.ex.spec=ui.ex.spec||SPEC[0];keepScroll(render3)};
+  const es=m.querySelector("#exSpec");if(es)es.onchange=()=>{ui.ex.spec=es.value;keepScroll(render3)};
+  m.querySelector("#addEx").onclick=()=>{const s=m.querySelector("#exSub");let sub=s?s.value.trim():"";
+    if(ui.ex.cat==="培養検査"){const sp=ui.ex.spec||SPEC[0];sub=sp==="その他"?(sub||"その他"):sp.replace(/（.*）/,"")}
+    p.exams.push({id:uid(),cat:ui.ex.cat,sub,date:exDate.value||ui.date,reportDone:null,final:null});save();keepScroll(render3);toast("検査予定を追加しました")};
+  m.querySelectorAll("[data-dk]").forEach(b=>b.onclick=()=>{ui.dkind=b.dataset.dk;keepScroll(render3)});
+  m.querySelector("#addD").onclick=()=>{const n=dName.value.trim();if(!n){dName.focus();return}
+    if(ui.dkind==="abx"){if(!has(dDays.value)){dDays.focus();toast("推奨治療期間を入れてください");return}p.drugs.push({id:uid(),kind:"abx",name:n,start:dStart.value||ui.date,days:dDays.value})}
+    else p.drugs.push({id:uid(),kind:"po",name:n,start:dStart.value||ui.date,po:dPo.value});
+    save();keepScroll(render3);toast("薬剤を追加しました")};
+  m.querySelector("#addIC").onclick=()=>{p.ics.push({id:uid(),date:icD.value||ui.date,time:icT.value,memo:icM.value.trim()});save();keepScroll(render3);toast("IC予定を追加しました")};
+  m.querySelector("#dvK").onchange=e=>{ui.dvk=e.target.value;keepScroll(render3)};
+  m.querySelectorAll("[data-devo]").forEach(b=>b.onclick=()=>{p.devOther=p.devOther.filter(x=>x.id!==b.dataset.devo);save();keepScroll(render3)});
+  m.querySelector("#addDv").onclick=()=>{const k=dvK.value,d=dvD.value;if(!d)return;
+    if(k==="other"){const t=dvT.value.trim();if(!t){dvT.focus();return}p.devOther.push({id:uid(),date:d,text:t});save();keepScroll(render3);toast("予定を追加しました");return}p.events[k]=p.events[k]||[];if(!p.events[k].includes(d))p.events[k].push(d);save();keepScroll(render3);toast("予定を追加しました")};
+  m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const[a,id]=b.dataset.del.split("|");p[a]=p[a].filter(x=>x.id!==id);save();keepScroll(render3)});
+  m.querySelectorAll("[data-dev]").forEach(b=>b.onclick=()=>{const[k,d]=b.dataset.dev.split("|");p.events[k]=p.events[k].filter(x=>x!==d);save();keepScroll(render3)});
+}
+
+/* ---------- ④ ---------- */
+function dayEvents(p,d){
+  const E=[];
+  if(d===p.admit)E.push({c:"dv",t:"入院"});
+  p.exams.filter(e=>e.date===d).forEach(e=>E.push({c:"ex",t:e.cat==="培養検査"?(e.sub||"")+"培養":e.cat+(e.sub?" "+e.sub:"")}));
+  p.ics.filter(x=>x.date===d).forEach(x=>E.push({c:"ic",t:"IC "+(x.time||"")}));
+  DEVTYPES.forEach(([k,l])=>(p.events[k]||[]).filter(x=>x===d).forEach(()=>E.push({c:"dv",t:l.replace("バイタル","").replace("尿道カテーテル","尿カテ")})));
+  p.drugs.filter(x=>x.kind==="abx"&&drugActive(p,x,d)).forEach(x=>E.push({c:"ab",t:`${x.name} ${diff(x.start,d)+1}/${x.days}`}));
+  p.drugs.filter(x=>x.kind==="po"&&x.po==="reg"&&drugActive(p,x,d)).forEach(x=>{if(d===x.start)E.push({c:"po",t:x.name+" 開始"})});
+  p.devOther.filter(o=>o.date===d).forEach(o=>E.push({c:"dv",t:o.text}));
+  if(p.dc.date===d)E.push({c:"dc",t:"退院予定"});
+  return E;
+}
+function trendItems(p){
+  const L=VITALS.map(v=>({k:v.k,t:v.t,vital:v})).concat([{k:"night",t:"夜間イベント"}]);
+  p.extra.slice().sort((a,b)=>(a.side>b.side?1:-1)||ORGANS.indexOf(a.organ)-ORGANS.indexOf(b.organ)).forEach(x=>L.push({k:"x_"+x.id,t:x.t,nk:x.nk,side:x.side,organ:x.organ}));
+  return L;
+}
+function chartDates(p){const n=S.range||10,a=[];for(let d=add(ui.date,-(n-1));d<=ui.date;d=add(d,1))a.push(d);return a}
+function seriesDef(p,i){
+  const g=f=>(p2,d)=>{const v=V(p2,d)[f];return has(v)?num(v):null};
+  if(i.vital){const x=i.vital;
+    if(x.k==="v_bp")return{type:"line",unit:x.u,series:[{n:"収縮期",c:C1,get:g("sbp")},{n:"拡張期",c:C2,get:g("dbp")}]};
+    return{type:"line",unit:x.u,series:[{n:x.t,c:C1,get:g(x.f[0])}],extra:x.dev?(d)=>V(p,d).o2dev||"":null}}
+  switch(i.nk){
+    case "stool":return{type:"bar",unit:"回",series:[{n:"排便回数",c:C1,get:g("stool")}]};
+    case "urine":return{type:"bar",unit:"mL",series:[{n:"尿量",c:C1,get:g("urine")}]};
+    case "wt":return{type:"line",unit:"kg",series:[{n:"体重",c:C1,get:g("wt")}]};
+    case "o2r":return{type:"range",unit:"L/分",series:[{n:"酸素量",c:C1,lo:g("o2min"),hi:g("o2max")}]};
+    case "bg":{const labs=BGMODES[p.bgMode],cs=[C1,C2,C3,C4];return{type:"line",unit:"mg/dL",series:labs.map((l,j)=>({n:l,c:cs[j],get:g("bg"+(j+1))}))}}
+    case "io":return{type:"div",unit:"mL",series:[{n:"バランス",c:C1,get:(p2,d)=>{const c=calcIO(p2,d);return c.any?c.bal:null}}]};
+  }
+  return null;
+}
+function chartSVG(p,i,dates,W){
+  let def=seriesDef(p,i);if(def&&!dates.some(d=>def.series.some(s=>s.get?s.get(p,d)!=null:(s.lo(p,d)!=null||s.hi(p,d)!=null))))def=null;const n=dates.length,padL=def?44:8,padR=8,padT=10,plotH=def?140:0,stripY=padT+plotH+(def?22:4),H=stripY+18;
+  const cw=(W-padL-padR)/n,x=j=>padL+(j+.5)*cw;
+  const st=dates.map(d=>rec(p,d,i.k)?.s||"");
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Hiragino Sans, Noto Sans JP, sans-serif" font-size="10">`;
+  if(def){
+    let vals=[];def.series.forEach(s=>dates.forEach(d=>{if(s.get){const v=s.get(p,d);if(v!=null)vals.push(v)}else{const a=s.lo(p,d),b=s.hi(p,d);if(a!=null)vals.push(a);if(b!=null)vals.push(b)}}));
+    let lo=Math.min(...vals),hi=Math.max(...vals);if(!vals.length){lo=0;hi=1}
+    if(def.type==="bar"||def.type==="range")lo=Math.min(0,lo);
+    if(def.type==="div"){const mx=Math.max(Math.abs(lo),Math.abs(hi),100);lo=-mx;hi=mx}
+    if(hi===lo){hi+=1;lo-=1}const pad=(hi-lo)*.12;if(def.type==="line"){lo-=pad;hi+=pad}else hi+=pad;
+    const y=v=>padT+plotH-(v-lo)/(hi-lo)*plotH;
+    // ok-no-value columns
+    dates.forEach((d,j)=>{const hv=def.series.some(s=>s.get?s.get(p,d)!=null:(s.lo(p,d)!=null||s.hi(p,d)!=null));if(st[j]==="ok"&&!hv)svg+=`<rect x="${padL+j*cw+1}" y="${padT}" width="${cw-2}" height="${plotH}" fill="#e6f3e8" rx="3"/>`});
+    // grid
+    const ticks=[lo+(hi-lo)*.1,(lo+hi)/2,hi-(hi-lo)*.1];const dec=(hi-lo)<10?1:0;
+    ticks.forEach(t=>svg+=`<line x1="${padL}" x2="${W-padR}" y1="${y(t)}" y2="${y(t)}" stroke="#eceff0"/><text x="${padL-4}" y="${y(t)+3}" text-anchor="end" fill="#5d6b6b" class="num">${t.toFixed(dec)}</text>`);
+    if(def.type==="div")svg+=`<line x1="${padL}" x2="${W-padR}" y1="${y(0)}" y2="${y(0)}" stroke="#5d6b6b"/>`;
+    def.series.forEach(s=>{
+      if(def.type==="line"){const pts=dates.map((d,j)=>{const v=s.get(p,d);return v==null?null:[x(j),y(v),j]}).filter(Boolean);
+        if(pts.length>1)svg+=`<path d="${pts.map((q,k)=>(k?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join(" ")}" fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round"/>`;
+        pts.forEach(q=>{const ng=st[q[2]]==="ng";svg+=`<circle cx="${q[0]}" cy="${q[1]}" r="4.5" fill="${s.c}" stroke="#fff" stroke-width="2"/>`+(ng?`<circle cx="${q[0]}" cy="${q[1]}" r="8" fill="none" stroke="#b3261e" stroke-width="1.5"/>`:"")});}
+      else if(def.type==="bar"||def.type==="div"){dates.forEach((d,j)=>{const v=s.get(p,d);if(v==null)return;const bw=Math.min(cw*.6,22),y0=y(def.type==="div"?0:Math.max(lo,0)),y1=y(v);const top=Math.min(y0,y1),h=Math.max(1,Math.abs(y1-y0));
+        const col=def.type==="div"?(v>=0?C1:C2):s.c;svg+=`<rect x="${x(j)-bw/2}" y="${top}" width="${bw}" height="${h}" rx="3" fill="${col}"/>`+(st[j]==="ng"?`<text x="${x(j)}" y="${top-3}" text-anchor="middle" fill="#b3261e" font-weight="700">!</text>`:"")})}
+      else if(def.type==="range"){dates.forEach((d,j)=>{let a=s.lo(p,d),b=s.hi(p,d);if(a==null&&b==null)return;if(a==null)a=b;if(b==null)b=a;svg+=`<line x1="${x(j)}" x2="${x(j)}" y1="${y(a)}" y2="${y(b)}" stroke="${s.c}" stroke-width="6" stroke-linecap="round"/>`+(st[j]==="ng"?`<text x="${x(j)}" y="${y(b)-6}" text-anchor="middle" fill="#b3261e" font-weight="700">!</text>`:"")})}
+    });
+    const every=Math.ceil(n/8);dates.forEach((d,j)=>{if((n-1-j)%every===0)svg+=`<text x="${x(j)}" y="${padT+plotH+14}" text-anchor="middle" fill="#5d6b6b">${md(d)}</text>`});
+  }
+  // status strip
+  svg+=`<text x="${def?padL-4:padL}" y="${stripY+11}" text-anchor="${def?"end":"start"}" fill="#5d6b6b">${def?"判定":""}</text>`;
+  dates.forEach((d,j)=>{const c=st[j]==="ok"?"#3f8f4a":st[j]==="ng"?"#b3261e":"#eceff0";svg+=`<rect x="${padL+j*cw+1}" y="${stripY}" width="${Math.max(2,cw-2)}" height="14" rx="3" fill="${c}"/>`});
+  if(!def){const every=Math.ceil(n/8);svg+=``;}
+  // hit areas
+  dates.forEach((d,j)=>svg+=`<rect class="hit" data-hd="${d}" x="${padL+j*cw}" y="0" width="${cw}" height="${H}" fill="transparent" style="cursor:pointer"/>`);
+  return svg+`</svg>`;
+}
+function tipText(p,i,d){
+  const def=seriesDef(p,i),r=rec(p,d,i.k),parts=[];
+  if(def)def.series.forEach(s=>{if(s.get){const v=s.get(p,d);if(v!=null)parts.push(`${s.n} ${def.type==="div"?sgn(v):v} ${def.unit}`)}else{const a=s.lo(p,d),b=s.hi(p,d);if(a!=null||b!=null)parts.push(`${a??"-"}〜${b??"-"} ${def.unit}`)}});
+  if(def&&def.extra){const e=def.extra(d);if(e)parts.unshift(e)}
+  const sj=r?.s==="ok"?"異常なし":r?.s==="ng"?"異常あり":"未判定";
+  return`<b>${md(d)}（${wd(d)}）</b>　${sj}${parts.length?"　"+esc(parts.join("、")):""}${r?.memo?"　メモ："+esc(r.memo):""}`;
+}
+function render4(){
+  const p=P(),m=document.getElementById("main");
+  ui.calM=ui.calM||ui.date.slice(0,7)+"-01";ui.calSel=ui.calSel||ui.date;
+  const first=pd(ui.calM),start=add(ui.calM,-first.getDay());
+  const cells=[];for(let j=0;j<42;j++){const d=add(start,j);cells.push(d);if(j>=34&&pd(d).getMonth()!==first.getMonth()&&j%7===6)break}
+  const selE=dayEvents(p,ui.calSel);
+  const tx=p.drugs.slice().sort((a,b)=>a.start.localeCompare(b.start)).map(x=>{
+    const k=(x.kind==="abx"?"ab_":"po_")+x.id,end=endedOn(p,k,"9999-12-31");
+    if(x.kind==="abx"){const pe=abxEnd(x),real=end||pe,day=Math.min(diff(x.start,ui.date)+1,diff(x.start,real)+1),stt=ui.date<x.start?"開始前":end&&end<ui.date?"終了":ui.date>pe?"予定超過":"投与中";
+      return`<div class="tx"><div><b>${esc(x.name)}</b> <span class="tag abx">抗菌薬</span> <span class="tag">${stt}</span></div><div class="num">${ui.date<x.start?"—":"Day "+day}<span class="muted"> / ${x.days}</span></div>
+        <div class="prog"><i style="width:${Math.max(0,Math.min(100,day/num(x.days)*100))}%;background:${C3}"></i></div><div class="m">${md(x.start)}〜${md(pe)}（予定 ${x.days}日間）${end?`・${md(end)}終了`:""}</div></div>`}
+    return`<div class="tx"><div><b>${esc(x.name)}</b> <span class="tag">${x.po==="reg"?"定期内服":"頓服"}</span>${end?' <span class="tag">終了</span>':""}</div><div></div><div class="m">${md(x.start)}〜${end?md(end):""}</div></div>`}).join("");
+  const dates=chartDates(p),TI=trendItems(p);
+  m.innerHTML=hdr(p)+`
+  <div class="card memocard"><div class="sidehd"><h2>メモ</h2><button class="btn ghost sm" id="memoOpen4">書く・編集</button></div>
+    ${p.memos.length?`<ul class="mlist">${p.memos.map(x=>`<li>${esc(x.text)}<span class="md">（${md(x.date)}）</span></li>`).join("")}</ul>`:'<p class="muted" style="margin:0">メモはまだありません。画面下のメモ欄から書けます。</p>'}</div>
+  <div class="card"><div class="calhd"><button id="cPrev" aria-label="前月"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b>${first.getFullYear()}年${first.getMonth()+1}月</b><button id="cNext" aria-label="翌月"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div>
+    <div class="cal">${"日月火水木金土".split("").map((w,j)=>`<div class="wd ${j===0?"sun":j===6?"sat":""}">${w}</div>`).join("")}
+    ${cells.map(d=>{const E=dayEvents(p,d),o=pd(d).getMonth()!==first.getMonth();return`<div class="cell ${o?"out":""} ${d===ui.date?"today":""} ${d===ui.calSel?"sel":""}" data-cd="${d}"><div class="dn">${pd(d).getDate()}</div>${E.slice(0,4).map(e=>`<div class="ev ${e.c}">${esc(e.t)}</div>`).join("")}${E.length>4?`<div class="ev">+${E.length-4}</div>`:""}</div>`}).join("")}</div>
+    <div class="legend"><span><i style="background:var(--blue-soft);border:1px solid var(--blue)"></i>検査</span><span><i style="background:${C3}"></i>抗菌薬</span><span><i style="background:var(--accent-soft);border:1px solid var(--accent)"></i>内服開始</span><span><i style="background:var(--purple)"></i>IC</span><span><i style="background:#eceff0"></i>処置・デバイス</span><span><i style="background:var(--warn)"></i>退院予定</span></div>
+    <div class="muted calhint" style="margin-top:4px">日付を押すと、その日の予定が下に表示されます。</div>
+    <div class="daydet"><b>${md(ui.calSel)}（${wd(ui.calSel)}）</b>${selE.length?`<ul>${selE.map(e=>`<li>${esc(e.t)}</li>`).join("")}</ul>`:'<span class="muted">　予定なし</span>'}</div></div>
+  <div class="card"><h2>今後14日間の予定</h2>${(()=>{const out=[];for(let j=0;j<14;j++){const d=add(ui.date,j),E=dayEvents(p,d).filter(e=>e.c!=="ab");if(E.length)out.push(`<div class="up"><span class="ud num">${md(d)}（${wd(d)}）</span><span class="uv">${E.map(e=>`<span class="ut"><span class="ev ${e.c} tedot"></span>${esc(e.t)}</span>`).join("")}</span></div>`)}return out.join("")||'<p class="muted" style="margin:0">予定はありません。</p>'})()}<div class="muted" style="margin-top:4px">抗菌薬の投与日は「治療期間」に表示しています。</div></div>
+  <div class="card"><h2>治療期間</h2>${tx||'<p class="muted">③で薬剤を登録すると表示されます。</p>'}</div>
+  <div class="card"><h2>①の評価項目の経過 <span class="muted" style="font-weight:400">${md(dates[0])}〜${md(dates[dates.length-1])}</span></h2>
+    <div class="seg" style="margin:6px 0 8px">${[10,20,30].map(n=>`<button data-rg="${n}" class="${(S.range||10)===n?"on":""}">${n}日間</button>`).join("")}</div>
+    <div class="muted">項目を押すとグラフが開きます。緑の帯は「異常なし（数値なし）」、赤い丸・「!」は異常ありの日です。</div>
+    ${TI.map(i=>{const st=dates.slice(-10).map(d=>rec(p,d,i.k)?.s||"");const def=seriesDef(p,i);let last="";if(def){for(let j=dates.length-1;j>=0;j--){const s=def.series[0];const v=s.get?s.get(p,dates[j]):s.hi(p,dates[j]);if(v!=null){last=(def.type==="div"?sgn(v):v)+" "+def.unit+(def.series.length>1&&s.get?"…":"");break}}}
+      const open=ui.open[i.k];
+      return`<div class="tr"><button data-tr="${i.k}"><span class="nm">${esc(i.t)}${i.side==="exam"?' <span class="tag" style="background:var(--purple-soft);color:var(--purple)">診察</span>':""}</span><span class="lv num">${esc(last)}</span><span class="spark">${st.map(s=>`<i class="${s==="ok"?"o":s==="ng"?"n":""}"></i>`).join("")}</span><span class="muted">${open?"▲":"▼"}</span></button>
+        ${open?`<div class="chartbox" data-cb="${i.k}">${def&&def.series.length>1?`<div class="legend" style="margin:0 0 4px">${def.series.map(s=>`<span><i style="background:${s.c}"></i>${s.n}</span>`).join("")}</div>`:""}<div class="svgw"></div><div class="tip">グラフの日付を押すと、その日の値とメモを表示します。</div>
+          ${(()=>{const ng=dates.filter(d=>rec(p,d,i.k)?.s==="ng");return ng.length?`<div class="ngmemos">${ng.map(d=>`<div>${md(d)} 異常あり${rec(p,d,i.k).memo?"：<span style='color:var(--ink)'>"+esc(rec(p,d,i.k).memo)+"</span>":""}</div>`).join("")}</div>`:""})()}</div>`:""}</div>`}).join("")}
+  </div>`;
+  bindCommon(m,p);
+  m.querySelector("#memoOpen4").onclick=()=>{ui.memoOpen=true;memoBar()};
+  m.querySelector("#cPrev").onclick=()=>{const d=pd(ui.calM);d.setMonth(d.getMonth()-1);ui.calM=ymd(d);keepScroll(render4)};
+  m.querySelector("#cNext").onclick=()=>{const d=pd(ui.calM);d.setMonth(d.getMonth()+1);ui.calM=ymd(d);keepScroll(render4)};
+  m.querySelectorAll("[data-cd]").forEach(c=>c.onclick=()=>{ui.calSel=c.dataset.cd;keepScroll(render4)});
+  m.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>{S.range=+b.dataset.rg;save();keepScroll(render4)});
+  m.querySelectorAll("[data-tr]").forEach(b=>b.onclick=()=>{ui.open[b.dataset.tr]=!ui.open[b.dataset.tr];keepScroll(render4)});
+  m.querySelectorAll("[data-cb]").forEach(box=>{const i=TI.find(x=>x.k===box.dataset.cb);const W=Math.max(280,Math.round(box.clientWidth));const w=box.querySelector(".svgw");w.innerHTML=chartSVG(p,i,dates,W);
+    const tip=box.querySelector(".tip");w.querySelectorAll(".hit").forEach(h=>{const f=()=>{tip.innerHTML=tipText(p,i,h.dataset.hd)};h.addEventListener("click",f);h.addEventListener("mouseenter",f)})});
+}
+
+/* ---------- 患者・入院時確認 ---------- */
+const modal=document.getElementById("modal"),mb=document.getElementById("mb");
+function closeM(){modal.classList.remove("on")}
+function ptForm(p){
+  const isNew=!p;const f=p?{label:p.label,admit:p.admit,age:p.age||"",weight:p.weight||"",height:p.height||"",problems:p.problems.slice()}:{label:"",admit:today(),age:"",weight:"",height:"",problems:[]};
+  const draw=()=>{
+  mb.innerHTML=`<h2>${isNew?"患者を追加":"患者情報"}</h2>
+   <div style="display:flex;flex-direction:column;gap:8px">
+   <div class="row"><label class="f" style="flex:1">識別名（ベッド番号など。氏名・IDは入れない）<input id="pl" value="${esc(f.label)}" placeholder="例: 501-2"></label><label class="f">入院日<input type="date" id="pad" value="${esc(f.admit)}"></label></div>
+   <div class="row"><label class="f" style="flex:1">年齢<input type="number" inputmode="numeric" id="page" value="${esc(f.age)}"></label><label class="f" style="flex:1">体重 kg<input type="number" inputmode="decimal" step="0.1" id="pwt" value="${esc(f.weight)}"></label><label class="f" style="flex:1">身長 cm（任意）<input type="number" inputmode="decimal" step="0.1" id="pht" value="${esc(f.height)}"></label></div>
+   <div class="muted" id="bmiL">${has(f.weight)&&has(f.height)?"BMI "+(num(f.weight)/Math.pow(num(f.height)/100,2)).toFixed(1):""}</div>
+   <div><div class="muted">プロブレムリスト（複数可）</div>
+    <ul class="lst" style="margin-top:2px">${f.problems.map((x,j)=>`<li><span class="d">#${j+1}</span><input data-pi="${j}" value="${esc(x)}" style="flex:1"><button class="btn danger sm" data-pr="${j}">削除</button></li>`).join("")}</ul>
+    <div class="row" style="margin-top:6px;flex-wrap:nowrap"><input id="pnew" placeholder="例: 誤嚥性肺炎" style="flex:1"><button class="btn sm" id="padd">追加</button></div></div></div>
+   ${isNew?'<p class="muted">保存すると、入院時確認事項が表示されます。</p>':'<button class="btn ghost sm" id="openAdm" style="margin-top:10px">入院時確認事項を開く</button>'}
+   <div class="row" style="justify-content:space-between;margin-top:12px"><div>${isNew?"":'<button class="btn danger sm" id="pdel">削除</button>'}</div>
+   <div class="row"><button class="btn ghost" id="pc">キャンセル</button><button class="btn" id="pok">保存</button></div></div>`;
+  const sync=()=>{f.label=pl.value;f.admit=pad.value;f.age=page.value;f.weight=pwt.value;f.height=pht.value;mb.querySelectorAll("[data-pi]").forEach(i=>f.problems[+i.dataset.pi]=i.value)};
+  ["pwt","pht"].forEach(id=>mb.querySelector("#"+id).oninput=()=>{sync();bmiL.textContent=has(f.weight)&&has(f.height)?"BMI "+(num(f.weight)/Math.pow(num(f.height)/100,2)).toFixed(1):""});
+  const addP=()=>{sync();const v=pnew.value.trim();if(!v)return;f.problems.push(v);draw();setTimeout(()=>{const n=document.getElementById("pnew");n&&n.focus()},0)};
+  mb.querySelector("#padd").onclick=addP;pnew.onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing)addP()};
+  mb.querySelectorAll("[data-pr]").forEach(b=>b.onclick=()=>{sync();f.problems.splice(+b.dataset.pr,1);draw()});
+  mb.querySelector("#pc").onclick=closeM;
+  mb.querySelector("#pok").onclick=()=>{sync();if(pnew.value.trim())f.problems.push(pnew.value.trim());
+    const v={label:f.label.trim()||("患者"+(S.patients.length+1)),admit:f.admit||today(),age:f.age,weight:f.weight,height:f.height,problems:f.problems.map(x=>x.trim()).filter(Boolean)};
+    if(isNew){const np=norm({id:uid(),...v});np.adm.date=today();S.patients.push(np);save();ui.pid=np.id;ui.view="pt";ui.ptab="1";ui.memoOpen=false;render();admForm(np,true)}
+    else{Object.assign(p,v);delete p.dx;save();closeM();render()}};
+  const oa=mb.querySelector("#openAdm");if(oa)oa.onclick=()=>admForm(p,false);
+  const del=mb.querySelector("#pdel");if(del)del.onclick=()=>{if(del.dataset.c){S.patients=S.patients.filter(x=>x.id!==p.id);save();closeM();ui.view="list";render()}else{del.dataset.c=1;del.textContent="本当に削除"}};
+  };
+  draw();modal.classList.add("on");setTimeout(()=>{const l=document.getElementById("pl");l&&isNew&&l.focus()},0);
+}
+function admForm(p,first){
+  const a=p.adm;
+  const seg=(key,opts)=>`<div class="st sm3">${opts.map(([v,l,c])=>`<button data-a="${key}" data-v="${v}" class="${c} ${String(a[key])===String(v)?"on":""}">${l}</button>`).join("")}</div>`;
+  const pend=k=>admPending(p).includes(k)?'<span class="tag" style="background:var(--warn-soft);color:var(--warn)">未</span>':'<span class="tag" style="background:var(--accent-soft);color:var(--accent)">済</span>';
+  const drugsOf=kind=>p.drugs.filter(x=>x.kind===kind&&x.start===p.admit);
+  const draw=()=>{const y=modal.scrollTop;mb.innerHTML=`<h2>入院時確認事項 <span class="muted" style="font-weight:400">${esc(p.label)}</span></h2>
+   ${first?'<p class="muted" style="margin-top:0">新規登録時に一度だけ表示します。「未」の項目は、翌日以降の①に確認するまで表示されます。あとから「患者情報」→「入院時確認事項を開く」で修正できます。</p>':""}
+   <div class="admq"><div class="aq">1. アレルギー ${pend("allergy")}</div>${seg("allergy",[["none","なし","g"],["yes","あり","r"]])}${a.allergy==="yes"?`<input data-at="allergyText" value="${esc(a.allergyText)}" placeholder="内容（薬剤名・症状）" style="width:100%;margin-top:6px">`:""}</div>
+   <div class="admq"><div class="aq">2. 持参薬・お薬手帳、継続薬剤 ${pend("meds")}</div>${seg("meds",[["done","確認済み","g"],["todo","未","n"]])}
+     <input data-at="medsText" value="${esc(a.medsText)}" placeholder="メモ（継続・中止の方針など）" style="width:100%;margin-top:6px">
+     <div class="sub3">③の薬剤予定に登録（開始日は入院日 ${md(p.admit)}）
+       <ul class="lst">${drugsOf("po").map(x=>`<li><span class="x">${esc(x.name)}<span class="tag">${x.po==="reg"?"定期内服":"頓服"}</span></span><button class="btn danger sm" data-dd="${x.id}">削除</button></li>`).join("")}</ul>
+       <div class="row" style="margin-top:4px"><input id="poN" placeholder="薬剤名" style="flex:1;min-width:120px"><select id="poT"><option value="reg">定期内服</option><option value="prn">頓服</option></select><button class="btn sm" id="poAdd">登録</button></div></div></div>
+   <div class="admq"><div class="aq">3. リハビリオーダー ${pend("rehab")}</div>${seg("rehab",[["done","済み","g"],["none","不要","b"],["todo","未","n"]])}</div>
+   <div class="admq"><div class="aq">4. 入院前のADL・生活状況・キーパーソン ${pend("adl")}</div>${seg("adl",[["自立","自立","g"],["一部介助","一部介助","o"],["全介助","全介助","r"]])}
+     <input data-at="living" value="${esc(a.living)}" placeholder="生活状況（例: 独居、妻と2人暮らし、施設入所）" style="width:100%;margin-top:6px">
+     <input data-at="keyperson" value="${esc(a.keyperson)}" placeholder="キーパーソン（例: 長女・同市在住）" style="width:100%;margin-top:6px"></div>
+   <div class="admq"><div class="aq">5. DNAR ${pend("dnar")}</div>${seg("dnar",[["full","Full code","g"],["dnar","DNAR","b"],["unk","未確認","n"]])}<input data-at="dnarText" value="${esc(a.dnarText)}" placeholder="メモ（確認した相手・範囲など）" style="width:100%;margin-top:6px"></div>
+   <div class="admq"><div class="aq">6. デバイス ${pend("device")}</div>
+     <div class="row" style="margin-bottom:4px"><span style="min-width:110px">CV・PICC</span>${seg("cv",[[true,"あり","b"],[false,"なし","g"]])}</div>
+     <div class="row"><span style="min-width:110px">尿道カテーテル</span>${seg("foley",[[true,"あり","b"],[false,"なし","g"]])}</div>
+     <div class="muted" style="margin-top:4px">「あり」で②に抜去の判断項目が出ます。「なし」の場合は、③で留置・挿入の予定が入ったときに表示します。</div></div>
+   <div class="admq"><div class="aq">7. 予測指示 ${pend("yosoku")}</div>${seg("yosoku",[["done","確認済み","g"],["todo","未","n"]])}</div>
+   <div class="admq"><div class="aq">8. 入院時治療 ${pend("tx")}</div>${seg("tx",[["done","確認済み","g"],["todo","未","n"]])}
+     <input data-at="txText" value="${esc(a.txText)}" placeholder="メモ（輸液・酸素・抗菌薬など）" style="width:100%;margin-top:6px">
+     <div class="sub3">抗菌薬を③に登録（開始日は入院日 ${md(p.admit)}）
+       <ul class="lst">${drugsOf("abx").map(x=>`<li><span class="x">${esc(x.name)}<span class="tag abx">${x.days}日間</span></span><button class="btn danger sm" data-dd="${x.id}">削除</button></li>`).join("")}</ul>
+       <div class="row" style="margin-top:4px"><input id="abN" list="abxL2" placeholder="種類 例: CTRX" style="flex:1;min-width:110px"><input id="abD" type="number" inputmode="numeric" placeholder="推奨日数" style="width:90px"><button class="btn sm" id="abAdd">登録</button></div>
+       <datalist id="abxL2">${ABX.map(x=>`<option value="${x}">`).join("")}</datalist></div></div>
+   <div class="admq"><div class="aq">9. 培養提出 ${pend("cult")}</div>${seg("cult",[[true,"提出あり","b"],[false,"なし","g"]])}
+     ${a.cult?`<ul class="lst">${a.cultures.map(c=>`<li><span class="x">${esc(c.type)}　<span class="num">${md(c.date)}</span>${c.final?`（${md(c.final)} 最終報告確認済み）`:""}</span><button class="btn danger sm" data-rc="${c.id}">削除</button></li>`).join("")||'<li class="muted">提出した培養を追加してください</li>'}</ul>
+     <div class="row" style="margin-top:6px"><select id="cty">${CULT.map(c=>`<option>${c}</option>`).join("")}</select><input type="date" id="cdt" value="${p.admit}"><button class="btn sm" id="addC">追加</button></div>`:""}</div>
+   <div class="row" style="justify-content:space-between;margin-top:12px"><span class="muted">未 ${admPending(p).length}項目</span><button class="btn" id="aOk">${first?"確認して始める":"閉じる"}</button></div>`;
+   mb.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const k=b.dataset.a;let v=b.dataset.v;if(v==="true")v=true;else if(v==="false")v=false;a[k]=a[k]===v?null:v;save();draw()});
+   mb.querySelectorAll("[data-at]").forEach(i=>i.oninput=()=>{a[i.dataset.at]=i.value;save()});
+   mb.querySelector("#poAdd").onclick=()=>{const n=poN.value.trim();if(!n){poN.focus();return}p.drugs.push({id:uid(),kind:"po",name:n,start:p.admit,po:poT.value});save();draw();toast("③に登録しました")};
+   mb.querySelector("#abAdd").onclick=()=>{const n=abN.value.trim();if(!n){abN.focus();return}if(!has(abD.value)){abD.focus();toast("推奨日数を入れてください");return}p.drugs.push({id:uid(),kind:"abx",name:n,start:p.admit,days:abD.value});save();draw();toast("③に登録しました")};
+   mb.querySelectorAll("[data-dd]").forEach(b=>b.onclick=()=>{p.drugs=p.drugs.filter(x=>x.id!==b.dataset.dd);save();draw()});
+   const ac=mb.querySelector("#addC");if(ac)ac.onclick=()=>{a.cultures.push({id:uid(),type:cty.value,date:cdt.value||p.admit,final:null});save();draw()};
+   mb.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>{a.cultures=a.cultures.filter(c=>c.id!==b.dataset.rc);save();draw()});
+   mb.querySelector("#aOk").onclick=()=>{a.done=true;save();closeM();render()};
+   modal.scrollTop=y;};
+  draw();modal.classList.add("on");
+}
+modal.onclick=e=>{if(e.target===modal&&(!P()||P().adm.done)){closeM();render()}};
+render();
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(reg=>{
+  reg.addEventListener("updatefound",()=>{const w=reg.installing;w&&w.addEventListener("statechange",()=>{if(w.state==="installed"&&navigator.serviceWorker.controller)toast("新しいバージョンがあります。アプリを開き直すと更新されます")})})}).catch(()=>{})})}
+</script>
+</body>
+</html>
