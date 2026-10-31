@@ -193,6 +193,8 @@ table.br tr.tot td{font-weight:700}
 #mNew{resize:vertical}
 .memocard{border-top:4px solid var(--warn)}.memocard h2{color:var(--warn);margin:0}
 .mlist{margin:6px 0 0;padding-left:18px;font-size:14px}.mlist li{padding:2px 0;white-space:pre-wrap}.mlist .md{padding-left:4px}
+.amemo{width:100%;margin-top:6px;resize:none;overflow:hidden}
+.admq .st{max-width:320px}
 .aq{font-weight:700;font-size:14px;margin-bottom:6px}
 .sub3{margin-top:8px;font-size:12px;color:var(--sub);background:var(--bg);border-radius:8px;padding:8px}
 .up{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--bg);font-size:14px}
@@ -304,12 +306,14 @@ function r0(n){return Math.round(n)}
 function sgn(n){return(n>0?"+":n<0?"−":"±")+Math.abs(r0(n)).toLocaleString()}
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),1800)}
 function norm(p){for(const k of["checks","vals","p2log","events"])p[k]=p[k]||{};for(const k of["extra","exams","drugs","ics"])p[k]=p[k]||[];
-  p.adm=p.adm||{};const A=p.adm;A.cultures=A.cultures||[];A.date=A.date||p.admit||today();
-  if(!p.problems)p.problems=p.dx?[p.dx]:[];p.memos=p.memos||[];p.devOther=p.devOther||[];p.dc=p.dc||{date:"",dest:"",st:{}};p.bgMode=p.bgMode||3;p.admit=p.admit||today();return p}
-function admPending(p){const a=p.adm,L=[];
-  if(!a.allergy)L.push("allergy");if(a.meds!=="done")L.push("meds");if(!a.rehab||a.rehab==="todo")L.push("rehab");if(!a.adl)L.push("adl");
-  if(!a.dnar||a.dnar==="unk")L.push("dnar");if(a.cv==null||a.foley==null)L.push("device");if(a.yosoku!=="done")L.push("yosoku");if(a.tx!=="done")L.push("tx");if(a.cult==null)L.push("cult");return L}
-function allCultures(p){return(p.adm.cult?p.adm.cultures.map(c=>({...c,src:"adm"})):[]).concat(p.exams.filter(e=>e.cat==="培養検査").map(e=>({id:e.id,type:e.sub||"培養",date:e.date,final:e.final,src:"ex"})))}
+  p.adm=p.adm||{};const A=p.adm;A.cultures=A.cultures||[];A.date=A.date||p.admit||today();A.st=A.st||{};A.memo=A.memo||{};
+  if(!A.v2){A.v2=1;const old={allergy:A.allergy&&A.allergy,meds:A.meds==="done",rehab:A.rehab&&A.rehab!=="todo",adl:A.adl,dnar:A.dnar&&A.dnar!=="unk",yosoku:A.yosoku==="done",tx:A.tx==="done",cult:A.cult!=null};
+    for(const k in old)if(old[k])A.st[k]="done";
+    const mt={allergy:A.allergy==="yes"?("あり "+(A.allergyText||"")).trim():A.allergyText,meds:A.medsText,adl:[A.adl&&A.adl!=="done"?A.adl:"",A.living,A.keyperson&&"キーパーソン "+A.keyperson].filter(Boolean).join("、"),dnar:[A.dnar==="full"?"Full code":A.dnar==="dnar"?"DNAR":"",A.dnarText].filter(Boolean).join("、"),tx:A.txText};
+    for(const k in mt)if(mt[k])A.memo[k]={text:mt[k],date:today()};A.needSync=1}
+  if(!p.problems)p.problems=p.dx?[p.dx]:[];p.memos=p.memos||[];p.devOther=p.devOther||[];p.dc=p.dc||{date:"",dest:"",st:{}};p.bgMode=p.bgMode||3;if(p.adm.needSync){p.memos=p.memos||[];for(const k in p.adm.memo)syncAdmMemo(p,k);delete p.adm.needSync}p.admit=p.admit||today();return p}
+function admPending(p){const a=p.adm;return ADMQ.map(x=>x[0]).filter(k=>k==="device"?(a.cv==null||a.foley==null):a.st[k]!=="done")}
+function allCultures(p){return p.adm.cultures.map(c=>({...c,src:"adm"})).concat(p.exams.filter(e=>e.cat==="培養検査").map(e=>({id:e.id,type:e.sub||"培養",date:e.date,final:e.final,src:"ex"})))}
 function probText(p){return p.problems.map((x,j)=>"#"+(j+1)+" "+x).join("　")}
 function P(){const p=S.patients.find(p=>p.id===ui.pid);return p&&norm(p)}
 function V(p,d){return p.vals[d]||{}}
@@ -395,7 +399,7 @@ function memoBar(){
     <div class="row" style="margin-top:6px;flex-wrap:nowrap"><textarea id="mNew" rows="2" placeholder="書き足す内容（記述日は自動でつきます）" style="flex:1"></textarea><button class="btn" id="mAdd">追加</button></div></div>`;
   document.body.style.paddingBottom="320px";
   const fit=t=>{t.style.height="auto";t.style.height=t.scrollHeight+"px"};
-  bar.querySelectorAll("[data-mid]").forEach(t=>{fit(t);t.oninput=()=>{fit(t);const x=p.memos.find(m=>m.id===t.dataset.mid);x.text=t.value;save()};t.onchange=()=>{if(ui.ptab==="4"&&ui.view==="pt")keepScroll(render4)}});
+  bar.querySelectorAll("[data-mid]").forEach(t=>{fit(t);t.oninput=()=>{fit(t);const x=p.memos.find(m=>m.id===t.dataset.mid);x.text=t.value;if(x.adm){const lab=`【入院時】${ADMQ.find(q=>q[0]===x.adm)[1]}：`;p.adm.memo[x.adm]={text:x.text.startsWith(lab)?x.text.slice(lab.length):x.text,date:x.date}}save()};t.onchange=()=>{if(ui.ptab==="4"&&ui.view==="pt")keepScroll(render4)}});
   bar.querySelectorAll("[data-mdel]").forEach(b=>b.onclick=()=>{if(b.dataset.c){p.memos=p.memos.filter(m=>m.id!==b.dataset.mdel);save();if(ui.ptab==="4")keepScroll(render4);memoBar()}else{b.dataset.c=1;b.textContent="削除";b.classList.add("cf")}});
   bar.querySelector("#mClose").onclick=()=>{ui.memoOpen=false;memoBar()};
   bar.querySelector("#mAdd").onclick=()=>{const v=mNew.value.trim();if(!v){mNew.focus();return}p.memos.push({id:uid(),text:v,date:today()});save();if(ui.ptab==="4")keepScroll(render4);memoBar();const n=document.getElementById("mNew");n&&n.focus()};
@@ -499,7 +503,7 @@ function ioBox(p){
 function row1(p,i){
   const r=rec(p,ui.date,i.k)||{},st=r.s||"",pr=rec(p,add(ui.date,-1),i.k);
   let btn;
-  if(i.adm){const quick=["meds","yosoku","tx"].includes(i.adm);btn=`<div class="ops">${quick?`<button class="btn sm" data-admok="${i.adm}">確認済み</button>`:""}<button class="btn ghost sm" data-admopen>入院時確認を開く</button></div>`;
+  if(i.adm){const quick=i.adm!=="device";btn=`<div class="ops">${quick?`<button class="btn sm" data-admok="${i.adm}">確認済み</button>`:""}<button class="btn ghost sm" data-admopen>入院時確認を開く</button></div>`;
     return`<div class="ck" style="background:var(--warn-soft)"><div class="body"><div class="t">${esc(i.t)}</div><div class="h">${esc(i.h)}</div></div>${btn}</div>`}
   if(i.report)btn=`<div class="st"><button data-st="todo" data-k="${i.k}" class="n ${st==="todo"?"on":""}">未</button><button data-st="done" data-k="${i.k}" class="g ${st==="done"?"on":""}">確認済み</button></div>`;
   else btn=`<div class="st"><button data-st="ok" data-k="${i.k}" class="g ${st==="ok"?"on":""}">異常なし</button><button data-st="ng" data-k="${i.k}" class="r ${st==="ng"?"on":""}">異常あり</button></div>`;
@@ -557,7 +561,7 @@ function render1(){
     else{f.oninput=()=>{h();const b=document.getElementById("ioBal");if(b){const c=calcIO(p,ui.date);b.textContent=c.any?sgn(c.bal)+" mL":"未計算"}};f.onchange=()=>{h();keepScroll(render1)}}});
   const bm=m.querySelector("[data-bgmode]");if(bm)bm.onchange=()=>{p.bgMode=+bm.value;save();keepScroll(render1)};
   const it=m.querySelector("#ioT");if(it)it.onclick=()=>{ui.ioOpen=!ui.ioOpen;keepScroll(render1)};
-  m.querySelectorAll("[data-admok]").forEach(b=>b.onclick=()=>{p.adm[b.dataset.admok]="done";save();keepScroll(render1);toast("入院時確認を更新しました")});
+  m.querySelectorAll("[data-admok]").forEach(b=>b.onclick=()=>{p.adm.st[b.dataset.admok]="done";save();keepScroll(render1);toast("入院時確認を更新しました")});
   m.querySelectorAll("[data-admopen]").forEach(b=>b.onclick=()=>admForm(p,false));
   m.querySelectorAll("[data-fin]").forEach(b=>b.onclick=()=>{const c=p.adm.cultures.find(x=>x.id===b.dataset.fin)||p.exams.find(x=>x.id===b.dataset.fin);c.type=c.type||c.sub||"培養";c.final=c.final===ui.date?null:ui.date;save();keepScroll(render1);if(c.final)toast(c.type+"：最終報告確認済み。翌日から表示しません")});
   m.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{p.extra=p.extra.filter(x=>x.id!==b.dataset.rm);save();keepScroll(render1)});
@@ -793,45 +797,48 @@ function ptForm(p){
   };
   draw();modal.classList.add("on");setTimeout(()=>{const l=document.getElementById("pl");l&&isNew&&l.focus()},0);
 }
+function syncAdmMemo(p,k){const m=p.adm.memo[k],id="adm_"+k,lab=ADMQ.find(q=>q[0]===k)[1];let e=p.memos.find(x=>x.id===id);
+  if(!m||!m.text.trim()){if(e)p.memos=p.memos.filter(x=>x.id!==id);if(m&&!m.text.trim())delete p.adm.memo[k];return}
+  if(!e){e={id,adm:k,date:m.date||today()};p.memos.push(e)}e.text=`【入院時】${lab}：${m.text}`}
 function admForm(p,first){
   const a=p.adm;
-  const seg=(key,opts)=>`<div class="st sm3">${opts.map(([v,l,c])=>`<button data-a="${key}" data-v="${v}" class="${c} ${String(a[key])===String(v)?"on":""}">${l}</button>`).join("")}</div>`;
   const pend=k=>admPending(p).includes(k)?'<span class="tag" style="background:var(--warn-soft);color:var(--warn)">未</span>':'<span class="tag" style="background:var(--accent-soft);color:var(--accent)">済</span>';
+  const st=k=>`<div class="st">${[["done","確認済み","g"],["todo","未","n"]].map(([v,l,c])=>`<button data-s="${k}" data-v="${v}" class="${c} ${(a.st[k]||"todo")===v?"on":""}">${l}</button>`).join("")}</div>`;
+  const yn=k=>`<div class="st">${[[true,"あり","b"],[false,"なし","g"]].map(([v,l,c])=>`<button data-yn="${k}" data-v="${v}" class="${c} ${a[k]===v?"on":""}">${l}</button>`).join("")}</div>`;
+  const memo=(k,ph)=>`<textarea class="amemo" data-am="${k}" rows="1" placeholder="${ph}">${esc(a.memo[k]?.text||"")}</textarea>${a.memo[k]?.text?`<div class="muted" style="font-size:11px">④のメモに追加済み（${md(a.memo[k].date)}）</div>`:""}`;
   const drugsOf=kind=>p.drugs.filter(x=>x.kind===kind&&x.start===p.admit);
+  const q=(n,k,body)=>`<div class="admq"><div class="aq">${n}. ${ADMQ.find(x=>x[0]===k)[1]} ${pend(k)}</div>${body}</div>`;
   const draw=()=>{const y=modal.scrollTop;mb.innerHTML=`<h2>入院時確認事項 <span class="muted" style="font-weight:400">${esc(p.label)}</span></h2>
-   ${first?'<p class="muted" style="margin-top:0">新規登録時に一度だけ表示します。「未」の項目は、翌日以降の①に確認するまで表示されます。あとから「患者情報」→「入院時確認事項を開く」で修正できます。</p>':""}
-   <div class="admq"><div class="aq">1. アレルギー ${pend("allergy")}</div>${seg("allergy",[["none","なし","g"],["yes","あり","r"]])}${a.allergy==="yes"?`<input data-at="allergyText" value="${esc(a.allergyText)}" placeholder="内容（薬剤名・症状）" style="width:100%;margin-top:6px">`:""}</div>
-   <div class="admq"><div class="aq">2. 持参薬・お薬手帳、継続薬剤 ${pend("meds")}</div>${seg("meds",[["done","確認済み","g"],["todo","未","n"]])}
-     <input data-at="medsText" value="${esc(a.medsText)}" placeholder="メモ（継続・中止の方針など）" style="width:100%;margin-top:6px">
+   ${first?'<p class="muted" style="margin-top:0">新規登録時に一度だけ表示します。「未」の項目は、翌日以降の①に確認するまで表示されます。メモは④のメモにも追加されます。あとから「患者情報」→「入院時確認事項を開く」で修正できます。</p>':'<p class="muted" style="margin-top:0">メモは④のメモにも追加されます。</p>'}
+   ${q(1,"allergy",st("allergy")+memo("allergy","メモ（例: なし／PCで皮疹）"))}
+   ${q(2,"meds",st("meds")+memo("meds","メモ（継続・中止の方針など）")+`
      <div class="sub3">③の薬剤予定に登録（開始日は入院日 ${md(p.admit)}）
        <ul class="lst">${drugsOf("po").map(x=>`<li><span class="x">${esc(x.name)}<span class="tag">${x.po==="reg"?"定期内服":"頓服"}</span></span><button class="btn danger sm" data-dd="${x.id}">削除</button></li>`).join("")}</ul>
-       <div class="row" style="margin-top:4px"><input id="poN" placeholder="薬剤名" style="flex:1;min-width:120px"><select id="poT"><option value="reg">定期内服</option><option value="prn">頓服</option></select><button class="btn sm" id="poAdd">登録</button></div></div></div>
-   <div class="admq"><div class="aq">3. リハビリオーダー ${pend("rehab")}</div>${seg("rehab",[["done","済み","g"],["none","不要","b"],["todo","未","n"]])}</div>
-   <div class="admq"><div class="aq">4. 入院前のADL・生活状況・キーパーソン ${pend("adl")}</div>${seg("adl",[["自立","自立","g"],["一部介助","一部介助","o"],["全介助","全介助","r"]])}
-     <input data-at="living" value="${esc(a.living)}" placeholder="生活状況（例: 独居、妻と2人暮らし、施設入所）" style="width:100%;margin-top:6px">
-     <input data-at="keyperson" value="${esc(a.keyperson)}" placeholder="キーパーソン（例: 長女・同市在住）" style="width:100%;margin-top:6px"></div>
-   <div class="admq"><div class="aq">5. DNAR ${pend("dnar")}</div>${seg("dnar",[["full","Full code","g"],["dnar","DNAR","b"],["unk","未確認","n"]])}<input data-at="dnarText" value="${esc(a.dnarText)}" placeholder="メモ（確認した相手・範囲など）" style="width:100%;margin-top:6px"></div>
-   <div class="admq"><div class="aq">6. デバイス ${pend("device")}</div>
-     <div class="row" style="margin-bottom:4px"><span style="min-width:110px">CV・PICC</span>${seg("cv",[[true,"あり","b"],[false,"なし","g"]])}</div>
-     <div class="row"><span style="min-width:110px">尿道カテーテル</span>${seg("foley",[[true,"あり","b"],[false,"なし","g"]])}</div>
-     <div class="muted" style="margin-top:4px">「あり」で②に抜去の判断項目が出ます。「なし」の場合は、③で留置・挿入の予定が入ったときに表示します。</div></div>
-   <div class="admq"><div class="aq">7. 予測指示 ${pend("yosoku")}</div>${seg("yosoku",[["done","確認済み","g"],["todo","未","n"]])}</div>
-   <div class="admq"><div class="aq">8. 入院時治療 ${pend("tx")}</div>${seg("tx",[["done","確認済み","g"],["todo","未","n"]])}
-     <input data-at="txText" value="${esc(a.txText)}" placeholder="メモ（輸液・酸素・抗菌薬など）" style="width:100%;margin-top:6px">
+       <div class="row" style="margin-top:4px"><input id="poN" placeholder="薬剤名" style="flex:1;min-width:120px"><select id="poT"><option value="reg">定期内服</option><option value="prn">頓服</option></select><button class="btn sm" id="poAdd">登録</button></div></div>`)}
+   ${q(3,"rehab",st("rehab")+memo("rehab","メモ（例: PT・ST依頼済み）"))}
+   ${q(4,"adl",st("adl")+memo("adl","メモ（例: 屋内杖歩行、妻と2人暮らし、キーパーソン長女）"))}
+   ${q(5,"dnar",st("dnar")+memo("dnar","メモ（例: DNAR、長女と確認）"))}
+   ${q(6,"device",`<div class="row" style="margin-bottom:6px"><span style="min-width:110px">CV・PICC</span>${yn("cv")}</div><div class="row"><span style="min-width:110px">尿道カテーテル</span>${yn("foley")}</div>
+     <div class="muted" style="margin-top:4px">「あり」で②に抜去の判断項目が出ます。「なし」の場合は、③で留置・挿入の予定が入ったときに表示します。</div>`)}
+   ${q(7,"yosoku",st("yosoku")+memo("yosoku","メモ（例: 発熱時アセトアミノフェン）"))}
+   ${q(8,"tx",st("tx")+memo("tx","メモ（輸液・酸素・抗菌薬など）")+`
      <div class="sub3">抗菌薬を③に登録（開始日は入院日 ${md(p.admit)}）
        <ul class="lst">${drugsOf("abx").map(x=>`<li><span class="x">${esc(x.name)}<span class="tag abx">${x.days}日間</span></span><button class="btn danger sm" data-dd="${x.id}">削除</button></li>`).join("")}</ul>
        <div class="row" style="margin-top:4px"><input id="abN" list="abxL2" placeholder="種類 例: CTRX" style="flex:1;min-width:110px"><input id="abD" type="number" inputmode="numeric" placeholder="推奨日数" style="width:90px"><button class="btn sm" id="abAdd">登録</button></div>
-       <datalist id="abxL2">${ABX.map(x=>`<option value="${x}">`).join("")}</datalist></div></div>
-   <div class="admq"><div class="aq">9. 培養提出 ${pend("cult")}</div>${seg("cult",[[true,"提出あり","b"],[false,"なし","g"]])}
-     ${a.cult?`<ul class="lst">${a.cultures.map(c=>`<li><span class="x">${esc(c.type)}　<span class="num">${md(c.date)}</span>${c.final?`（${md(c.final)} 最終報告確認済み）`:""}</span><button class="btn danger sm" data-rc="${c.id}">削除</button></li>`).join("")||'<li class="muted">提出した培養を追加してください</li>'}</ul>
-     <div class="row" style="margin-top:6px"><select id="cty">${CULT.map(c=>`<option>${c}</option>`).join("")}</select><input type="date" id="cdt" value="${p.admit}"><button class="btn sm" id="addC">追加</button></div>`:""}</div>
+       <datalist id="abxL2">${ABX.map(x=>`<option value="${x}">`).join("")}</datalist></div>`)}
+   ${q(9,"cult",st("cult")+memo("cult","メモ")+`
+     <div class="sub3">提出した培養（①に「培養結果」が出ます）
+       <ul class="lst">${a.cultures.map(c=>`<li><span class="x">${esc(c.type)}　<span class="num">${md(c.date)}</span>${c.final?`（${md(c.final)} 最終報告確認済み）`:""}</span><button class="btn danger sm" data-rc="${c.id}">削除</button></li>`).join("")||'<li class="muted">未登録</li>'}</ul>
+       <div class="row" style="margin-top:6px"><select id="cty">${CULT.map(c=>`<option>${c}</option>`).join("")}</select><input type="date" id="cdt" value="${p.admit}"><button class="btn sm" id="addC">追加</button></div></div>`)}
    <div class="row" style="justify-content:space-between;margin-top:12px"><span class="muted">未 ${admPending(p).length}項目</span><button class="btn" id="aOk">${first?"確認して始める":"閉じる"}</button></div>`;
-   mb.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const k=b.dataset.a;let v=b.dataset.v;if(v==="true")v=true;else if(v==="false")v=false;a[k]=a[k]===v?null:v;save();draw()});
-   mb.querySelectorAll("[data-at]").forEach(i=>i.oninput=()=>{a[i.dataset.at]=i.value;save()});
+   const fit=t=>{t.style.height="auto";t.style.height=t.scrollHeight+"px"};
+   mb.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{a.st[b.dataset.s]=b.dataset.v;save();draw()});
+   mb.querySelectorAll("[data-yn]").forEach(b=>b.onclick=()=>{const v=b.dataset.v==="true";a[b.dataset.yn]=a[b.dataset.yn]===v?null:v;save();draw()});
+   mb.querySelectorAll("[data-am]").forEach(t=>{fit(t);t.oninput=()=>{fit(t);const k=t.dataset.am;a.memo[k]=a.memo[k]||{date:today()};a.memo[k].text=t.value;syncAdmMemo(p,k);save()};t.onchange=()=>{syncAdmMemo(p,t.dataset.am);save();draw()}});
    mb.querySelector("#poAdd").onclick=()=>{const n=poN.value.trim();if(!n){poN.focus();return}p.drugs.push({id:uid(),kind:"po",name:n,start:p.admit,po:poT.value});save();draw();toast("③に登録しました")};
    mb.querySelector("#abAdd").onclick=()=>{const n=abN.value.trim();if(!n){abN.focus();return}if(!has(abD.value)){abD.focus();toast("推奨日数を入れてください");return}p.drugs.push({id:uid(),kind:"abx",name:n,start:p.admit,days:abD.value});save();draw();toast("③に登録しました")};
    mb.querySelectorAll("[data-dd]").forEach(b=>b.onclick=()=>{p.drugs=p.drugs.filter(x=>x.id!==b.dataset.dd);save();draw()});
-   const ac=mb.querySelector("#addC");if(ac)ac.onclick=()=>{a.cultures.push({id:uid(),type:cty.value,date:cdt.value||p.admit,final:null});save();draw()};
+   mb.querySelector("#addC").onclick=()=>{a.cultures.push({id:uid(),type:cty.value,date:cdt.value||p.admit,final:null});save();draw()};
    mb.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>{a.cultures=a.cultures.filter(c=>c.id!==b.dataset.rc);save();draw()});
    mb.querySelector("#aOk").onclick=()=>{a.done=true;save();closeM();render()};
    modal.scrollTop=y;};
